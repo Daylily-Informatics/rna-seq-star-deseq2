@@ -70,3 +70,6 @@ rule rsem_bowtie:
         ) &> {log}
         """
 
+ruleorder:
+    rsem_bowtie > rsem_quant
+
