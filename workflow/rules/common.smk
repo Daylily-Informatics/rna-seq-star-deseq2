@@ -37,6 +37,14 @@ def get_final_output():
             unit=units.index.get_level_values("unit_name"),
         )
     )
+    final_output.extend(
+        expand(
+            "results/rsem/{sample}_{unit}.genome.sorted.wig",
+            zip,
+            sample=units.index.get_level_values("sample_name"),
+            unit=units.index.get_level_values("unit_name"),
+        )
+    )
 
     if config["pca"]["activate"]:
         # get all the variables to plot a PCA for
