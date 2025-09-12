@@ -27,6 +27,7 @@ include: "rules/ref.smk"
 include: "rules/trim.smk"
 include: "rules/qc.smk"
 include: "rules/align.smk"
+include: "rules/rsem.smk"
 include: "rules/diffexp.smk"
 
 

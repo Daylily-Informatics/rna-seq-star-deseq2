@@ -64,3 +64,4 @@ params:
   cutadapt-pe: ""
   cutadapt-se: ""
   star: ""
+  rsem: ""
