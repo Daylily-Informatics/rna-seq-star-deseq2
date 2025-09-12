@@ -11,7 +11,7 @@ rule rsem_index:
         "logs/rsem/prepare_reference.log",
     threads: 8
     cache: True
-    container: "docker://daylilyinformatics/rsem:1.3.3.1"
+    container: "docker://daylilyinformatics/rsem:1.3.3.2"
     shell:
         """
         rsem-prepare-reference --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
@@ -34,7 +34,7 @@ rule rsem_quant:
         prefix=lambda wc, input: input.ref.replace(".transcripts.fa", ""),
         extra=config["params"]["rsem"],
         paired=lambda wc: "--paired-end" if is_paired_end(wc.sample) else "",
-    container: "docker://daylilyinformatics/rsem:1.3.3.1"
+    container: "docker://daylilyinformatics/rsem:1.3.3.2"
     shell:
         """
         rsem-calculate-expression --alignments {params.paired} -p {threads} {params.extra} {input.bam} {params.prefix} results/rsem/{wildcards.sample}_{wildcards.unit} &> {log}
@@ -61,7 +61,7 @@ rule rsem_bowtie:
         extra=config["params"]["rsem"],
         paired=lambda wc: "--paired-end" if is_paired_end(wc.sample) else "",
         fq_inputs=lambda wc, input: " ".join([input.fq1] + ([input.fq2] if is_paired_end(wc.sample) else [])),
-    container: "docker://daylilyinformatics/rsem:1.3.3.1"
+    container: "docker://daylilyinformatics/rsem:1.3.3.2"
     shell:
         """
         (
