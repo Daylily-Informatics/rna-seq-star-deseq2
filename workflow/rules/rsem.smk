@@ -14,7 +14,7 @@ rule rsem_index:
     container: "docker://daylilyinformatics/rsem:1.3.3.3"
     shell:
         """
-        rsem-prepare-reference --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
+        rsem-prepare-reference --bowtie --bowtie2 --star --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
         """
 
 
