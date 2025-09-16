@@ -55,7 +55,7 @@ rule rsem_index_bowtie2:
         rsem-prepare-reference --bowtie2 --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
         """
 
-rule rsem_quant:
+rule rsem_bowtie2_quant:
     input:
         bam="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
         ref="resources/bowtie2_rsem/rsem.transcripts.fa",
@@ -108,5 +108,5 @@ rule rsem_bowtie2:
         """
 
 ruleorder:
-    rsem_bowtie > rsem_quant
+    rsem_bowtie1 > rsem_bowtie2_quant
 
