@@ -108,5 +108,5 @@ rule rsem_bowtie2:
         """
 
 ruleorder:
-    rsem_bowtie1 > rsem_bowtie2_quant
+    rsem_bowtie2 > rsem_bowtie2_quant
 
