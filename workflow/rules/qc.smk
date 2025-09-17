@@ -15,7 +15,7 @@ FASTQC_ZIP_OUTPUTS = [
 ]
 
 
-def get_multiqc_inputs():
+def get_multiqc_inputs(wildcards):
     inputs = list(FASTQC_ZIP_OUTPUTS)
     inputs.extend(
         expand(
