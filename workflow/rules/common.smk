@@ -141,6 +141,29 @@ def get_fq(wildcards):
             return {"fq1": f"{u.fq1}", "fq2": f"{u.fq2}"}
 
 
+def get_fastqc_fastq(wildcards):
+    fastqs = get_fq(wildcards)
+    read_map = {"R1": "fq1", "R2": "fq2"}
+    try:
+        key = read_map[wildcards.read]
+    except KeyError:
+        raise ValueError(
+            "Invalid read value '{read}' for sample {sample} unit {unit}".format(
+                read=wildcards.read, sample=wildcards.sample, unit=wildcards.unit
+            )
+        )
+
+    fastq = fastqs.get(key)
+    if fastq is None:
+        raise ValueError(
+            "Read {read} not available for sample {sample} unit {unit}".format(
+                read=wildcards.read, sample=wildcards.sample, unit=wildcards.unit
+            )
+        )
+
+    return fastq
+
+
 def get_strandedness(units):
     if "strandedness" in units.columns:
         return units["strandedness"].tolist()
