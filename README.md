@@ -30,13 +30,13 @@ cd rna-seq-star-deseq2
 
 ## Build The Snakemake (v8.*) Conda Env
 ```bash
-conda create -n snakemake -c conda-forge  snakemake==9.5.1 snakedeploy tabulate yaml
-conda activate snakemake
+conda create -n rnaseqsmk -c conda-forge  snakemake==9.5.1 snakedeploy tabulate yaml
+conda activate rnaseqsmk
 pip install snakemake-executor-plugin-pcluster-slurm==0.0.31
 
-conda activate snakemake
+conda activate rnaseqsmk
 snakemake --version
-# 9.5.1 
+# 9.5.1
 ```
 
 ### Run Test Data Workflow
@@ -46,7 +46,7 @@ _you are advised to run the following in a tmux or screen session_
 #### Prepare Cache and TMPDIR
 
 ```bash
-conda activate snakemake
+conda activate rnaseqsmk
 
 # Set your cache dir for saving resources useful across other jobs, snakemake uses this when the `--cache` flag is set.
 
