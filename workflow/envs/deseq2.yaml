@@ -1,8 +1,19 @@
 channels:
   - conda-forge
   - bioconda
-  - nodefaults
+  - r
+  - defaults
 dependencies:
-  - bioconductor-deseq2=1.38
-  - r-stringr=1.5
-  - r-ashr=2.2_54
+  - r-base=4.3.*
+  - r-essentials=4.3.*
+  - r-cli
+  - r-tidyverse
+  - r-stringr
+  - r-conflicted
+  - bioconductor-deseq2=1.40.*
+  - bioconductor-biocparallel
+  - bioconductor-apeglm
+  - bioconductor-biomart
+  - r-remotes
+  - r-optparse
+  - r-data.table

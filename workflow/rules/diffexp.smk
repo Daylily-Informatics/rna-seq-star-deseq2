@@ -30,8 +30,8 @@ rule gene_2_symbol:
         species=get_bioc_species_name(),
     log:
         "logs/gene2symbol/{prefix}.log",
-    container:
-        "docker://bioconductor/bioconductor_docker:RELEASE_3_18"
+    conda:
+        "../envs/deseq2.yaml"
     script:
         "../scripts/gene2symbol.R"
 
@@ -43,8 +43,8 @@ rule deseq2_init:
         dds="results/deseq2/all.rds",
         normcounts="results/deseq2/normcounts.tsv",
         normalized="results/counts/normalized.deseq.tsv",
-    container:
-        "docker://bioconductor/bioconductor_docker:RELEASE_3_18"
+    conda:
+        "../envs/deseq2.yaml"
     log:
         "logs/deseq2/init.log",
     threads: get_deseq2_threads()
@@ -58,25 +58,12 @@ rule pca:
         "results/deseq2/all.rds",
     output:
         report("results/pca.{variable}.svg", "../report/pca.rst"),
-    container:
-        "docker://bioconductor/bioconductor_docker:RELEASE_3_18"
+    conda:
+        "../envs/deseq2.yaml"
     log:
         "logs/pca.{variable}.log",
     script:
         "../scripts/plot-pca.R"
-
-#rule pca:
-#    input:
-#        "results/deseq2/all.rds",
-#    output:
-#        report("results/pca.{variable}.svg", "../report/pca.rst"),
-#    conda:
-#        "../envs/deseq2.yaml"
-#    log:
-#        "logs/pca.{variable}.log",
-#    script:
-#        "../scripts/plot-pca.R"
-
 
 rule deseq2:
     input:
@@ -86,8 +73,8 @@ rule deseq2:
         ma_plot=report("results/diffexp/{contrast}.ma-plot.svg", "../report/ma.rst"),
     params:
         contrast=get_contrast,
-    container:
-        "docker://bioconductor/bioconductor_docker:RELEASE_3_18"
+    conda:
+        "../envs/deseq2.yaml"
     log:
         "logs/deseq2/{contrast}.diffexp.log",
     threads: get_deseq2_threads()
