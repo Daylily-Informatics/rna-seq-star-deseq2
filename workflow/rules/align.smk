@@ -5,8 +5,7 @@ rule align:
         gtf="resources/genome.gtf",
     output:
         aln="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
-        reads_per_gene="results/star/{sample}_{unit}/ReadsPerGene.out.tab",
-        transcriptome="results/star/{sample}_{unit}/Aligned.toTranscriptome.out.bam",
+        reads_per_gene="results/star/{sample}_{unit}/ReadsPerGene.out.tab"
     log:
         "logs/star/{sample}_{unit}.log",
     benchmark:
