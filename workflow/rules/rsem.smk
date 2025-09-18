@@ -34,7 +34,7 @@ rule rsem_index_star:
         "logs/rsem/prepare_reference.log",
     threads: 190
     cache: True
-    container: "docker://daylilyinformatics/rsem:1.3.3.4"
+    container: "docker://daylilyinformatics/rsem:1.3.3.5"
     shell:
         """
         rsem-prepare-reference -p {threads} --star --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
@@ -53,7 +53,7 @@ rule rsem_index_bowtie:
         "logs/rsem/prepare_reference.log",
     threads: 190
     cache: True
-    container: "docker://daylilyinformatics/rsem:1.3.3.4"
+    container: "docker://daylilyinformatics/rsem:1.3.3.5"
     shell:
         """
         rsem-prepare-reference -p {threads} --bowtie --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
@@ -72,7 +72,7 @@ rule rsem_index_bowtie2:
         "logs/rsem/prepare_reference.log",
     threads: 190
     cache: True
-    container: "docker://daylilyinformatics/rsem:1.3.3.4"
+    container: "docker://daylilyinformatics/rsem:1.3.3.5"
     shell:
         """
         rsem-prepare-reference -p {threads} --bowtie2 --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
@@ -109,7 +109,7 @@ if RSEM_ALIGNER == "star":
                 )
                 else ""
             ),
-        container: "docker://daylilyinformatics/rsem:1.3.3.4"
+        container: "docker://daylilyinformatics/rsem:1.3.3.5"
         shell:
             """
             (
@@ -137,7 +137,7 @@ else:
             prefix=lambda wc, input: input.ref.replace(".transcripts.fa", ""),
             extra=config["params"]["rsem"],
             paired=lambda wc: "--paired-end" if is_paired_end(wc.sample) else "",
-        container: "docker://daylilyinformatics/rsem:1.3.3.4"
+        container: "docker://daylilyinformatics/rsem:1.3.3.5"
         shell:
             """
             rsem-calculate-expression --bowtie2 --alignments {params.paired} -p {threads} {params.extra} {input.bam} {params.prefix} results/rsem/{wildcards.sample}_{wildcards.unit} &> {log}
@@ -164,7 +164,7 @@ else:
             extra=config["params"]["rsem"],
             paired=lambda wc: "--paired-end" if is_paired_end(wc.sample) else "",
             fq_inputs=lambda wc, input: " ".join([input.fq1] + ([input.fq2] if is_paired_end(wc.sample) else [])),
-        container: "docker://daylilyinformatics/rsem:1.3.3.4"
+        container: "docker://daylilyinformatics/rsem:1.3.3.5"
         shell:
             """
             (
