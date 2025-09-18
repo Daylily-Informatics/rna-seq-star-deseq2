@@ -58,7 +58,7 @@ rule rsem_index_bowtie2:
 rule rsem_bowtie2_quant:
     input:
         bam="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
-        ref="resources/bowtie2_rsem/rsem.transcripts.fa",
+        ref="resources/bowtie2_rsem.transcripts.fa",
     output:
         genes="results/rsem/{sample}_{unit}.genes.results",
         isoforms="results/rsem/{sample}_{unit}.isoforms.results",
@@ -81,7 +81,7 @@ rule rsem_bowtie2_quant:
 rule rsem_bowtie2:
     input:
         unpack(get_fq),
-        ref="resources/bowtie2_rsem/rsem.transcripts.fa",
+        ref="resources/bowtie2_rsem.transcripts.fa",
     output:
         genes="results/rsem/{sample}_{unit}.genes.results",
         isoforms="results/rsem/{sample}_{unit}.isoforms.results",
