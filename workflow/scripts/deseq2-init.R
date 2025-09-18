@@ -1,13 +1,10 @@
-# deseq2-init.R — robust init with defensive design + logging
+# deseq2-init.R — robust init with diagnostics for zero-variance counts
 
 # ---- logging to Snakemake log ----
 log <- file(snakemake@log[[1]], open = "wt")
 sink(log)
 sink(log, type = "message")
-.onexit <- function() {
-  sink(type = "message"); sink(); close(log)
-}
-# ensure cleanup even on error
+.onexit <- function() { sink(type = "message"); sink(); close(log) }
 reg.finalizer(environment(), function(...) try(.onexit(), silent = TRUE), onexit = TRUE)
 
 suppressPackageStartupMessages({
@@ -16,7 +13,7 @@ suppressPackageStartupMessages({
   library(DESeq2)
 })
 
-# ---- parallel setup (POSIX safe; MulticoreParam not on Windows) ----
+# ---- parallel setup ----
 parallel <- FALSE
 if (snakemake@threads > 1) {
   suppressPackageStartupMessages({ library(BiocParallel) })
@@ -29,7 +26,7 @@ if (snakemake@threads > 1) {
   cli_inform("BiocParallel registered with {snakemake@threads} workers (parallel={parallel}).")
 }
 
-# ---- read counts (STAR ReadsPerGene-like) ----
+# ---- read counts ----
 counts <- read.table(
   snakemake@input[["counts"]],
   header = TRUE, sep = "\t", row.names = 1,
@@ -39,6 +36,26 @@ counts <- read.table(
 counts <- counts[!grepl("^N_", rownames(counts)), , drop = FALSE]
 
 if (ncol(counts) == 0) cli_abort("Counts matrix is empty")
+
+# --- preflight sanity on columns BEFORE metadata join ---
+# duplicates in column names?
+dup_names <- duplicated(colnames(counts))
+if (any(dup_names)) {
+  cli_warn("Duplicate column names detected: {paste(unique(colnames(counts)[dup_names]), collapse=', ')}")
+}
+# identical columns?
+if (ncol(counts) >= 2) {
+  ident_cols <- character()
+  ref <- counts[,1,drop=FALSE]
+  for (j in 2:ncol(counts)) {
+    if (isTRUE(all(ref[,1] == counts[,j]))) ident_cols <- c(ident_cols, colnames(counts)[j])
+  }
+  if (length(ident_cols) == (ncol(counts)-1)) {
+    cli_warn("All columns are identical to the first column. This will make DE impossible.")
+  } else if (length(ident_cols) > 0) {
+    cli_warn("Some columns are identical to the first column: {paste(ident_cols, collapse=', ')}")
+  }
+}
 
 # ---- read sample metadata ----
 samples_path <- snakemake@config[["samples"]]
@@ -67,7 +84,7 @@ for (name in names(vof)) {
   coldata[[name]] <- factor(coldata[[name]])
   base_level <- vof[[name]][["base_level"]]
   if (!is.null(base_level) && base_level %in% levels(coldata[[name]])) {
-    # FIX: use ref= (not base=)
+    # NOTE: use ref= (not base=)
     coldata[[name]] <- relevel(coldata[[name]], ref = base_level)
   }
 }
@@ -127,20 +144,17 @@ if (design_formula == "") {
 
   design_formula <- if (length(terms) == 0) "~ 1" else paste("~", paste(terms, collapse = " + "))
 } else {
-  # optional soft warning on degenerate user-specified terms
   parsed_terms <- setdiff(all.vars(stats::terms(stats::as.formula(design_formula))), "1")
   if (length(parsed_terms) > 0) {
     deg <- parsed_terms[parsed_terms %in% colnames(coldata) &
       vapply(parsed_terms, function(tn) length(unique(coldata[[tn]])) < 2, logical(1))]
-    if (length(deg) > 0) {
-      cli_warn("Design includes non-varying terms: {paste(deg, collapse=', ')}; DESeq2 may drop them.")
-    }
+    if (length(deg) > 0) cli_warn("Design includes non-varying terms: {paste(deg, collapse=', ')}; DESeq2 may drop them.")
   }
 }
 
 cli_inform(c("Design formula" = design_formula))
 
-# print observed levels for each term in the final design (helps debug)
+# print observed levels for each term
 terms_now <- setdiff(all.vars(terms(as.formula(design_formula))), "1")
 if (length(terms_now) > 0) {
   for (tn in terms_now) {
@@ -172,21 +186,29 @@ if (!any(keep)) {
 # size factors always OK
 dds <- estimateSizeFactors(dds)
 
+# ---- NEW: gene-variance preflight ----
+has_gene_variation <- function(dds) {
+  if (ncol(counts(dds)) < 2) return(FALSE)
+  # any row has variance > 0 across samples?
+  v <- apply(counts(dds), 1, function(x) var(as.numeric(x)))
+  sum(v > 0, na.rm = TRUE) > 0
+}
+num_var_genes <- if (ncol(counts(dds)) >= 2) sum(apply(counts(dds), 1, function(x) var(as.numeric(x)) > 0)) else 0
+cli_inform("Genes with nonzero variance across samples: {num_var_genes}")
+
 # ---- safe gate for DESeq() ----
 run_deseq <- function(dds, design_formula) {
   if (ncol(counts(dds)) < 2) return(FALSE)
   if (identical(trimws(design_formula), "~ 1")) return(FALSE)
-  terms_now <- setdiff(all.vars(stats::terms(stats::as.formula(design_formula))), "1")
-  if (length(terms_now) == 0) return(FALSE)
-  varying <- vapply(terms_now, function(tn) length(unique(colData(dds)[[tn]])) >= 2, logical(1))
-  any(varying)
+  if (!has_gene_variation(dds)) return(FALSE)
+  TRUE
 }
 
 if (run_deseq(dds, design_formula)) {
   cli_inform("Running DESeq() …")
   dds <- DESeq(dds, parallel = parallel)
 } else {
-  cli_inform("Skipping DESeq(): design has no testable effects (normalization only).")
+  cli_inform("Skipping DESeq(): no testable effects and/or no gene variance (normalization only).")
 }
 
 # ---- outputs ----
