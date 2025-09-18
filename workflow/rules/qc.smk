@@ -1,5 +1,121 @@
 ## RSEQC
 
+FASTQC_WILDCARDS = []
+for unit in units.itertuples():
+    reads = ("R1", "R2") if is_paired_end(unit.sample_name) else ("R1",)
+    for read in reads:
+        FASTQC_WILDCARDS.append(
+            {"sample": unit.sample_name, "unit": unit.unit_name, "read": read}
+        )
+
+FASTQC_ZIP_OUTPUTS = [
+    "results/qc/fastqc/{sample}_{unit}_{read}_fastqc.zip".format(**entry)
+    for entry in FASTQC_WILDCARDS
+]
+
+def get_fastqc_fastq(wildcards):
+    fastqs = get_fq(wildcards)
+    read_map = {"R1": "fq1", "R2": "fq2"}
+    try:
+        key = read_map[wildcards.read]
+    except KeyError:
+        raise ValueError(
+            "Invalid read value '{read}' for sample {sample} unit {unit}".format(
+                read=wildcards.read, sample=wildcards.sample, unit=wildcards.unit
+            )
+        )
+
+    fastq = fastqs.get(key)
+    if fastq is None:
+        raise ValueError(
+            "Read {read} not available for sample {sample} unit {unit}".format(
+                read=wildcards.read, sample=wildcards.sample, unit=wildcards.unit
+            )
+        )
+
+    return fastq
+
+def get_multiqc_inputs(wildcards):
+    inputs = list(FASTQC_ZIP_OUTPUTS)
+    inputs.extend(
+        expand(
+            "results/star/{unit.sample_name}_{unit.unit_name}/Aligned.sortedByCoord.out.bam",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionanno.junction.bed",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionsat.junctionSaturation_plot.pdf",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.infer_experiment.txt",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.stats.txt",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.inner_distance_freq.inner_distance.txt",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdistribution.txt",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdup.DupRate_plot.pdf",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readgc.GC_plot.pdf",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "logs/rseqc/rseqc_junction_annotation/{unit.sample_name}_{unit.unit_name}.log",
+            unit=units.itertuples(),
+        )
+    )
+    return inputs
+
+
+rule fastqc:
+    input:
+        fastq=get_fastqc_fastq,
+    output:
+        html="results/qc/fastqc/{sample}_{unit}_{read}_fastqc.html",
+        zip="results/qc/fastqc/{sample}_{unit}_{read}_fastqc.zip",
+    threads: 4
+    log:
+        "logs/fastqc/{sample}_{unit}_{read}.log",
+    params:
+        extra="",
+    wrapper:
+        "v3.5.3/bio/fastqc"
+
 
 rule rseqc_gtf2bed:
     input:
@@ -210,63 +326,20 @@ rule rseqc_gene_body_coverage_all:
         geneBody_coverage.py -r {input.bed} -i {input.bams} -o {params.prefix} > {log} 2>&1;
         """
 
-
 rule multiqc:
     input:
-        expand(
-            "results/star/{unit.sample_name}_{unit.unit_name}/Aligned.sortedByCoord.out.bam",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionanno.junction.bed",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionsat.junctionSaturation_plot.pdf",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.infer_experiment.txt",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.stats.txt",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.inner_distance_freq.inner_distance.txt",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdistribution.txt",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdup.DupRate_plot.pdf",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readgc.GC_plot.pdf",
-            unit=units_list,
-        ),
-        expand(
-            "logs/rseqc/rseqc_junction_annotation/{unit.sample_name}_{unit.unit_name}.log",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.genebody.geneBodyCoverage.txt",
-            unit=units_list,
-        ),
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.genebody.geneBodyCoverage.curves.pdf",
-            unit=units_list,
-        ),
-        "results/qc/rseqc/all.genebody.geneBodyCoverage.txt",
-        "results/qc/rseqc/all.genebody.geneBodyCoverage.curves.pdf",
+        get_multiqc_inputs,
     threads: 32
     output:
         "results/qc/multiqc_report.html",
     log:
         "logs/multiqc.log",
-    wrapper:
-        "v3.5.3/bio/multiqc"
+    container:
+        "docker://daylilyinformatics/daylily_multiqc:0.2"
+    shell:
+        """
+        multiqc -f \
+         --template default \
+        --filename {output[0]} \
+        -i 'deseq2 RNASEQ QC' ./results >> {log} 2>&1;
+        """
