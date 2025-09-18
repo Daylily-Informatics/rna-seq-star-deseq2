@@ -63,12 +63,26 @@ properties:
         type: string
       cutadapt-se:
         type: string
-      star: 
+      star:
         type: string
     required:
       - cutadapt-pe
       - cutadapt-se
       - star
+
+  relatedness:
+    type: object
+    properties:
+      activate:
+        type: boolean
+      contamination_threshold:
+        type: number
+      same_patient_threshold:
+        type: number
+    required:
+      - activate
+      - contamination_threshold
+      - same_patient_threshold
 
 required:
   - samples
@@ -78,3 +92,4 @@ required:
   - diffexp
   - params
   - trimming
+  - relatedness

@@ -278,3 +278,74 @@ rule multiqc:
         "logs/multiqc.log",
     wrapper:
         "v3.5.3/bio/multiqc"
+
+
+if is_activated("relatedness"):
+    RELATEDNESS_READS = expand(
+        "results/star/{unit.sample_name}_{unit.unit_name}/ReadsPerGene.out.tab",
+        unit=UNIT_RECORDS,
+    )
+
+    RELATEDNESS_SAMPLE_NAMES = [unit.sample_name for unit in UNIT_RECORDS]
+    RELATEDNESS_UNIT_NAMES = [unit.unit_name for unit in UNIT_RECORDS]
+    RELATEDNESS_STRANDS = get_strandedness(units)
+
+    rule relatedness_readpair_contamination:
+        input:
+            counts=RELATEDNESS_READS,
+            samples=config["samples"],
+        output:
+            "results/qc/relatedness/readpair_contamination.tsv",
+        log:
+            "logs/relatedness/readpair_contamination.log",
+        params:
+            sample_names=RELATEDNESS_SAMPLE_NAMES,
+            unit_names=RELATEDNESS_UNIT_NAMES,
+            strands=RELATEDNESS_STRANDS,
+            mode="readpair",
+            contamination_threshold=config["relatedness"]["contamination_threshold"],
+            same_patient_threshold=config["relatedness"]["same_patient_threshold"],
+        conda:
+            "../envs/pandas.yaml",
+        script:
+            "../scripts/relatedness_analysis.py"
+
+    rule relatedness_same_patient:
+        input:
+            counts=RELATEDNESS_READS,
+            samples=config["samples"],
+        output:
+            "results/qc/relatedness/same_patient_relatedness.tsv",
+        log:
+            "logs/relatedness/same_patient.log",
+        params:
+            sample_names=RELATEDNESS_SAMPLE_NAMES,
+            unit_names=RELATEDNESS_UNIT_NAMES,
+            strands=RELATEDNESS_STRANDS,
+            mode="patient",
+            contamination_threshold=config["relatedness"]["contamination_threshold"],
+            same_patient_threshold=config["relatedness"]["same_patient_threshold"],
+        conda:
+            "../envs/pandas.yaml",
+        script:
+            "../scripts/relatedness_analysis.py"
+
+    rule relatedness_cross_patient:
+        input:
+            counts=RELATEDNESS_READS,
+            samples=config["samples"],
+        output:
+            "results/qc/relatedness/cross_patient_flags.tsv",
+        log:
+            "logs/relatedness/cross_patient.log",
+        params:
+            sample_names=RELATEDNESS_SAMPLE_NAMES,
+            unit_names=RELATEDNESS_UNIT_NAMES,
+            strands=RELATEDNESS_STRANDS,
+            mode="cross",
+            contamination_threshold=config["relatedness"]["contamination_threshold"],
+            same_patient_threshold=config["relatedness"]["same_patient_threshold"],
+        conda:
+            "../envs/pandas.yaml",
+        script:
+            "../scripts/relatedness_analysis.py"

@@ -21,6 +21,15 @@ def get_final_output():
     final_output.append("results/counts/all.symbol.tsv")
     final_output.append("results/qc/multiqc_report.html")
 
+    if config["relatedness"]["activate"]:
+        final_output.extend(
+            [
+                "results/qc/relatedness/readpair_contamination.tsv",
+                "results/qc/relatedness/same_patient_relatedness.tsv",
+                "results/qc/relatedness/cross_patient_flags.tsv",
+            ]
+        )
+
     if config["pca"]["activate"]:
         # get all the variables to plot a PCA for
         pca_variables = list(config["diffexp"]["variables_of_interest"])
@@ -54,6 +63,9 @@ units = (
     .sort_index()
 )
 validate(units, schema="../schemas/units.schema.yaml")
+
+
+UNIT_RECORDS = list(units.itertuples())
 
 
 wildcard_constraints:
