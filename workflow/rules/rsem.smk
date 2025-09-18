@@ -68,7 +68,7 @@ rule rsem_bowtie2_quant:
         "logs/rsem/{sample}_{unit}.bench.tsv",
     threads: 8
     params:
-        prefix=lambda wc, input: input.ref.replace("/rsem.transcripts.fa", ""),
+        prefix=lambda wc, input: input.ref.replace(".transcripts.fa", ""),
         extra=config["params"]["rsem"],
         paired=lambda wc: "--paired-end" if is_paired_end(wc.sample) else "",
     container: "docker://daylilyinformatics/rsem:1.3.3.4"
@@ -94,7 +94,7 @@ rule rsem_bowtie2:
         "logs/rsem/{sample}_{unit}.bowtie.bench.tsv",
     threads: 8
     params:
-        prefix=lambda wc, input: input.ref.replace("/rsem.transcripts.fa", ""),
+        prefix=lambda wc, input: input.ref.replace(".transcripts.fa", ""),
         extra=config["params"]["rsem"],
         paired=lambda wc: "--paired-end" if is_paired_end(wc.sample) else "",
         fq_inputs=lambda wc, input: " ".join([input.fq1] + ([input.fq2] if is_paired_end(wc.sample) else [])),
