@@ -13,15 +13,15 @@ samples = (
 
 
 def get_final_output():
-    final_output = expand(
-        "results/diffexp/{contrast}.diffexp.symbol.tsv",
-        contrast=config["diffexp"]["contrasts"],
-    )
-    final_output.append("results/deseq2/normcounts.symbol.tsv")
-    final_output.append("results/counts/all.symbol.tsv")
-    final_output.append("results/qc/multiqc_report.html")
+    #final_output = expand(
+    #    "results/diffexp/{contrast}.diffexp.symbol.tsv",
+    #    contrast=config["diffexp"]["contrasts"],
+    #)
+    #final_output.append("results/deseq2/normcounts.symbol.tsv")
+    #final_output.append("results/counts/all.symbol.tsv")
+    #final_output.append("results/qc/multiqc_report.html")
 
-    final_output.extend(
+    final_output = expand(
         expand(
             "results/rsem/{sample}_{unit}.genes.results",
             zip,
