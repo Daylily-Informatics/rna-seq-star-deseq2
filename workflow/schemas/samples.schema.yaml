@@ -5,6 +5,16 @@ properties:
   sample_name:
     type: string
     description: sample name/identifier
+  condition:
+    type: string
+    description: biological condition label (tumor or normal)
+    enum:
+      - tumor
+      - normal
+  patient:
+    type: string
+    description: optional patient identifier for paired analyses
 
 required:
   - sample_name
+  - condition
