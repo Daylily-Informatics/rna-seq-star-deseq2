@@ -2,18 +2,27 @@ log <- file(snakemake@log[[1]], open = "wt")
 sink(log)
 sink(log, type = "message")
 
-library("cli")
-library("DESeq2")
+suppressPackageStartupMessages({
+    library("cli")
+    library("DESeq2")
+    library("apeglm")
+})
 
 parallel <- FALSE
 if (snakemake@threads > 1) {
-    library("BiocParallel")
+    suppressPackageStartupMessages({
+        library("BiocParallel")
+    })
     # setup parallelization
     register(MulticoreParam(snakemake@threads))
     parallel <- TRUE
 }
 
 dds <- readRDS(snakemake@input[[1]])
+
+if (ncol(dds) < 2) {
+    cli_abort("At least two samples are required for differential expression analysis")
+}
 
 contrast_config <- snakemake@config[["diffexp"]][["contrasts"]][[
     snakemake@wildcards[["contrast"]]
@@ -69,7 +78,7 @@ res <- lfcShrink(
   dds,
   contrast = contrast,
   res = res,
-  type = "ashr"
+  type = "apeglm"
 )
 
 # sort by p-value
@@ -91,3 +100,7 @@ write.table(
   row.names = FALSE,
   sep = "\t"
 )
+
+sink(type = "message")
+sink()
+close(log)

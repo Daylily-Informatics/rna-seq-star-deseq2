@@ -1,117 +1,157 @@
-# Check if `snakemake` object exists, if not, define it manually
-if (!exists("snakemake")) {
-  snakemake <- list(
-    input = list(counts = "results/counts/all.tsv"),
-    output = list("results/deseq2/all.rds", "results/deseq2/normcounts.tsv"),
-    log = list("logs/deseq2/init.log"),  # Correct the log definition
-    threads = 1,  # Or set the number of threads you want to use
-    config = list(
-      samples = "path/to/samples.tsv",
-      diffexp = list(
-        variables_of_interest = list(
-          "some_variable" = list(base_level = "some_level")
-        ),
-        batch_effects = c("effect1", "effect2")
-      )
-    )
-  )
-}
-
-
-# Redirecting logs
 log <- file(snakemake@log[[1]], open = "wt")
 sink(log)
-sink(log, type="message")
+sink(log, type = "message")
 
-library(stringr)
-library("DESeq2")
+suppressPackageStartupMessages({
+  library(stringr)
+  library(cli)
+  library(DESeq2)
+})
 
-# Setup parallelization
 parallel <- FALSE
 if (snakemake@threads > 1) {
-  library("BiocParallel")
+  suppressPackageStartupMessages({
+    library(BiocParallel)
+  })
   register(MulticoreParam(snakemake@threads))
   parallel <- TRUE
 }
 
-# Print the input file names for troubleshooting
-cat("Counts file: ", snakemake@input[["counts"]], "\n")
-cat("Samples file: ", snakemake@config[["samples"]], "\n")
-
-# Read input files
-counts_data <- read.table(
+counts <- read.table(
   snakemake@input[["counts"]],
   header = TRUE,
-  row.names = "gene",
-  check.names = FALSE
+  sep = "\t",
+  row.names = 1,
+  check.names = FALSE,
+  quote = "",
+  comment.char = ""
 )
-counts_data <- counts_data[, order(names(counts_data))]
+counts <- counts[!grepl("^N_", rownames(counts)), , drop = FALSE]
 
-col_data <- read.table(
-  snakemake@config[["samples"]],
-  header = TRUE,
-  row.names = "sample_name",
-  check.names = FALSE
-)
-col_data <- col_data[order(row.names(col_data)), , drop = FALSE]
-
-# Set base level for variables of interest
-for (vof in names(snakemake@config[["diffexp"]][["variables_of_interest"]])) {
-  base_level <- snakemake@config[["diffexp"]][["variables_of_interest"]][[vof]][["base_level"]]
-  col_data[[vof]] <- relevel(factor(col_data[[vof]]), base_level)
+if (ncol(counts) == 0) {
+  cli_abort("Counts matrix is empty")
 }
 
-# Handle batch effects
-batch_effects <- snakemake@config[["diffexp"]][["batch_effects"]]
-for (effect in batch_effects) {
-  if (str_length(effect) > 0) {
-    col_data[[effect]] <- factor(col_data[[effect]])
+samples_path <- snakemake@config[["samples"]]
+coldata <- read.table(
+  samples_path,
+  header = TRUE,
+  sep = "\t",
+  row.names = "sample_name",
+  check.names = FALSE,
+  quote = "",
+  comment.char = ""
+)
+
+if (!all(colnames(counts) %in% rownames(coldata))) {
+  missing <- setdiff(colnames(counts), rownames(coldata))
+  cli_abort("Sample metadata missing for: {missing}")
+}
+
+coldata <- coldata[colnames(counts), , drop = FALSE]
+
+vof <- snakemake@config[["diffexp"]][["variables_of_interest"]]
+if (is.null(vof)) {
+  vof <- list()
+}
+
+for (name in names(vof)) {
+  if (!name %in% colnames(coldata)) {
+    cli_abort("Column '{name}' required by variables_of_interest is missing in samples.tsv")
+  }
+  base_level <- vof[[name]][["base_level"]]
+  coldata[[name]] <- factor(coldata[[name]])
+  if (!is.null(base_level) && base_level %in% levels(coldata[[name]])) {
+    coldata[[name]] <- relevel(coldata[[name]], base = base_level)
   }
 }
 
+batch_effects <- snakemake@config[["diffexp"]][["batch_effects"]]
+if (is.null(batch_effects)) {
+  batch_effects <- character()
+} else if (is.character(batch_effects)) {
+  batch_effects <- batch_effects[nzchar(batch_effects)]
+} else {
+  batch_effects <- unlist(batch_effects)
+  batch_effects <- batch_effects[nzchar(batch_effects)]
+}
 
+for (effect in batch_effects) {
+  if (!effect %in% colnames(coldata)) {
+    cli_abort("Batch effect column '{effect}' is missing in samples.tsv")
+  }
+  coldata[[effect]] <- factor(coldata[[effect]])
+}
 
-# build up formula with additive batch_effects and all interactions between the
-# variables_of_interes
+if ("patient" %in% colnames(coldata) && !"patient" %in% batch_effects) {
+  if (length(unique(coldata[["patient"]])) > 1) {
+    coldata[["patient"]] <- factor(coldata[["patient"]])
+    batch_effects <- union(batch_effects, "patient")
+  }
+}
 
 design_formula <- snakemake@config[["diffexp"]][["model"]]
+if (is.null(design_formula)) {
+  design_formula <- ""
+}
+design_formula <- str_trim(design_formula)
 
-if (str_length(design_formula) == 0) {
-  batch_effects <- str_flatten(batch_effects, " + ")
-  if (str_length(batch_effects) > 0) {
-    batch_effects <- str_c(batch_effects, " + ")
+if (design_formula == "") {
+  terms <- character()
+  if (length(batch_effects) > 0) {
+    terms <- c(terms, batch_effects)
   }
-  vof_interactions <- str_flatten(
-    names(snakemake@config[["diffexp"]][["variables_of_interest"]]),
-    " * "
-  )
-  design_formula <- str_c("~", batch_effects, vof_interactions)
+  if (length(names(vof)) > 0) {
+    terms <- c(terms, names(vof))
+  }
+  if (length(terms) == 0) {
+    design_formula <- "~ 1"
+  } else {
+    design_formula <- paste("~", paste(unique(terms), collapse = " + "))
+  }
 }
 
-print(paste("Dimensions of counts_data: ", dim(counts_data)))
-print(paste("Dimensions of col_data: ", dim(col_data)))
+cli_inform(c("Design formula" = design_formula))
 
 dds <- DESeqDataSetFromMatrix(
-  countData = counts_data,
-  colData = col_data,
+  countData = round(counts),
+  colData = coldata,
   design = as.formula(design_formula)
 )
 
-# remove uninformative columns
-dds <- dds[rowSums(counts(dds)) > 1, ]
-# normalization and preprocessing
-dds <- DESeq(dds, parallel = parallel)
+keep <- rowSums(counts(dds)) >= 10
+if (!any(keep)) {
+  cli_warn("No genes with at least 10 counts; keeping all rows")
+} else {
+  dds <- dds[keep, ]
+}
 
-# Write dds object as RDS
-saveRDS(dds, file = snakemake@output[[1]])
-# Write normalized counts
+dds <- estimateSizeFactors(dds)
+
+if (ncol(counts(dds)) >= 2) {
+  dds <- DESeq(dds, parallel = parallel)
+}
+
+saveRDS(dds, file = snakemake@output[["dds"]])
+
 norm_counts <- counts(dds, normalized = TRUE)
+norm_counts <- as.data.frame(norm_counts)
+norm_counts <- cbind(gene = rownames(norm_counts), norm_counts)
 write.table(
-  data.frame(
-    "gene" = rownames(norm_counts),
-    norm_counts
-  ),
-  file = snakemake@output[[2]],
+  norm_counts,
+  file = snakemake@output[["normcounts"]],
   sep = "\t",
+  quote = FALSE,
   row.names = FALSE
 )
+write.table(
+  norm_counts,
+  file = snakemake@output[["normalized"]],
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE
+)
+
+sink(type = "message")
+sink()
+close(log)

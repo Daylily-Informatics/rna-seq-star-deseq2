@@ -13,12 +13,19 @@ samples = (
 
 
 def get_final_output():
-    final_output = expand(
-        "results/diffexp/{contrast}.diffexp.symbol.tsv",
-        contrast=config["diffexp"]["contrasts"],
-    )
+    final_output = []
+    if len(samples) >= 2:
+        final_output.extend(
+            expand(
+                "results/diffexp/{contrast}.diffexp.symbol.tsv",
+                contrast=config["diffexp"]["contrasts"],
+            )
+        )
     #final_output.append("results/deseq2/normcounts.symbol.tsv")
     final_output.append("results/counts/all.symbol.tsv")
+    final_output.append("results/counts/normalized.deseq.tsv")
+    final_output.append("results/deseq2/normcounts.tsv")
+    final_output.append("results/deseq2/normcounts.symbol.tsv")
     final_output.append("results/qc/multiqc_report.html")
 
     if config["pca"]["activate"]:
@@ -42,6 +49,8 @@ units = (
     .sort_index()
 )
 validate(units, schema="../schemas/units.schema.yaml")
+
+units_list = list(units.itertuples())
 
 
 wildcard_constraints:

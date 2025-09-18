@@ -1,3 +1,7 @@
+log <- file(snakemake@log[[1]], open = "wt")
+sink(log)
+sink(log, type = "message")
+
 library(conflicted)
 library(biomaRt)
 library(tidyverse)
@@ -5,11 +9,11 @@ library(tidyverse)
 library("cli")
 
 # this variable holds a mirror name until
-# useEnsembl succeeds ("www" is last, because 
+# useEnsembl succeeds ("www" is last, because
 # of very frequent "Internal Server Error"s)
 mart <- "useast"
 rounds <- 0
-while ( class(mart)[[1]] != "Mart" ) {
+while (class(mart)[[1]] != "Mart") {
   mart <- tryCatch(
     {
       # done here, because error function does not
@@ -38,35 +42,40 @@ while ( class(mart)[[1]] != "Mart" ) {
         )
       }
       # hop to next mirror
-      mart <- switch(mart,
-                     useast = "uswest",
-                     uswest = "asia",
-                     asia = "www",
-                     www = {
-                       # wait before starting another round through the mirrors,
-                       # hoping that intermittent problems disappear
-                       Sys.sleep(30)
-                       "useast"
-                     }
-              )
+      mart <- switch(
+        mart,
+        useast = "uswest",
+        uswest = "asia",
+        asia = "www",
+        www = {
+          # wait before starting another round through the mirrors,
+          # hoping that intermittent problems disappear
+          Sys.sleep(30)
+          "useast"
+        }
+      )
     }
   )
 }
 
-
-df <- read.table(snakemake@input[["counts"]], sep='\t', header=1)
+df <- read.table(snakemake@input[["counts"]], sep = '\t', header = 1)
 
 g2g <- biomaRt::getBM(
-            attributes = c( "ensembl_gene_id",
-                            "external_gene_name"),
-            filters = "ensembl_gene_id",
-            values = df$gene,
-            mart = mart,
-            )
+  attributes = c("ensembl_gene_id", "external_gene_name"),
+  filters = "ensembl_gene_id",
+  values = df$gene,
+  mart = mart
+)
 
-annotated <- merge(df, g2g, by.x="gene", by.y="ensembl_gene_id")
-annotated$gene <- ifelse(annotated$external_gene_name == '', annotated$gene, annotated$external_gene_name)
+annotated <- merge(df, g2g, by.x = "gene", by.y = "ensembl_gene_id")
+annotated$gene <- ifelse(
+  annotated$external_gene_name == '',
+  annotated$gene,
+  annotated$external_gene_name
+)
 annotated$external_gene_name <- NULL
-write.table(annotated, snakemake@output[["symbol"]], sep='\t', row.names=F)
+write.table(annotated, snakemake@output[["symbol"]], sep = '\t', row.names = FALSE)
 
-
+sink(type = "message")
+sink()
+close(log)

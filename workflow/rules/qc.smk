@@ -167,48 +167,102 @@ rule rseqc_readgc:
         """
 
 
+rule rseqc_gene_body_coverage:
+    input:
+        bam="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
+        bed="results/qc/rseqc/annotation.bed",
+    output:
+        txt="results/qc/rseqc/{sample}_{unit}.genebody.geneBodyCoverage.txt",
+        pdf="results/qc/rseqc/{sample}_{unit}.genebody.geneBodyCoverage.pdf",
+    threads: 32
+    priority: 1
+    log:
+        "logs/rseqc/rseqc_gene_body/{sample}_{unit}.log",
+    params:
+        prefix=lambda w, output: output.txt.replace(".geneBodyCoverage.txt", ""),
+    conda:
+        "../envs/rseqc.yaml"
+    shell:
+        """
+        geneBody_coverage.py -r {input.bed} -i {input.bam} -o {params.prefix} > {log} 2>&1;
+        """
+
+
+rule rseqc_gene_body_coverage_all:
+    input:
+        bams=expand(
+            "results/star/{unit.sample_name}_{unit.unit_name}/Aligned.sortedByCoord.out.bam",
+            unit=units_list,
+        ),
+        bed="results/qc/rseqc/annotation.bed",
+    output:
+        txt="results/qc/rseqc/all.genebody.geneBodyCoverage.txt",
+        pdf="results/qc/rseqc/all.genebody.geneBodyCoverage.pdf",
+    threads: 32
+    log:
+        "logs/rseqc/rseqc_gene_body/all.log",
+    params:
+        prefix="results/qc/rseqc/all.genebody",
+    conda:
+        "../envs/rseqc.yaml"
+    shell:
+        """
+        geneBody_coverage.py -r {input.bed} -i {input.bams} -o {params.prefix} > {log} 2>&1;
+        """
+
+
 rule multiqc:
     input:
         expand(
             "results/star/{unit.sample_name}_{unit.unit_name}/Aligned.sortedByCoord.out.bam",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
         expand(
             "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionanno.junction.bed",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
         expand(
             "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionsat.junctionSaturation_plot.pdf",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
         expand(
             "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.infer_experiment.txt",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
         expand(
             "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.stats.txt",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
         expand(
             "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.inner_distance_freq.inner_distance.txt",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
         expand(
             "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdistribution.txt",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
         expand(
             "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdup.DupRate_plot.pdf",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
         expand(
             "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readgc.GC_plot.pdf",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
         expand(
             "logs/rseqc/rseqc_junction_annotation/{unit.sample_name}_{unit.unit_name}.log",
-            unit=units.itertuples(),
+            unit=units_list,
         ),
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.genebody.geneBodyCoverage.txt",
+            unit=units_list,
+        ),
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.genebody.geneBodyCoverage.pdf",
+            unit=units_list,
+        ),
+        "results/qc/rseqc/all.genebody.geneBodyCoverage.txt",
+        "results/qc/rseqc/all.genebody.geneBodyCoverage.pdf",
     threads: 32
     output:
         "results/qc/multiqc_report.html",
