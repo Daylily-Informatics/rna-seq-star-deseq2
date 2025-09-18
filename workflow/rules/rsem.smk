@@ -9,12 +9,12 @@ rule rsem_index_star:
         extra=config["params"]["rsem"],
     log:
         "logs/rsem/prepare_reference.log",
-    threads: 8
+    threads: 190
     cache: True
     container: "docker://daylilyinformatics/rsem:1.3.3.4"
     shell:
         """
-        rsem-prepare-reference --star --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
+        rsem-prepare-reference -p {threads} --star --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
         """
 
 rule rsem_index_bowtie:
@@ -28,12 +28,12 @@ rule rsem_index_bowtie:
         extra=config["params"]["rsem"],
     log:
         "logs/rsem/prepare_reference.log",
-    threads: 8
+    threads: 190
     cache: True
     container: "docker://daylilyinformatics/rsem:1.3.3.4"
     shell:
         """
-        rsem-prepare-reference --bowtie --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
+        rsem-prepare-reference -p {threads} --bowtie --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
         """
 
 rule rsem_index_bowtie2:
@@ -47,12 +47,12 @@ rule rsem_index_bowtie2:
         extra=config["params"]["rsem"],
     log:
         "logs/rsem/prepare_reference.log",
-    threads: 8
+    threads: 190
     cache: True
     container: "docker://daylilyinformatics/rsem:1.3.3.4"
     shell:
         """
-        rsem-prepare-reference --bowtie2 --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
+        rsem-prepare-reference -p {threads} --bowtie2 --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
         """
 
 rule rsem_bowtie2_quant:
@@ -67,7 +67,7 @@ rule rsem_bowtie2_quant:
         "logs/rsem/{sample}_{unit}.log",
     benchmark:
         "logs/rsem/{sample}_{unit}.bench.tsv",
-    threads: 8
+    threads: 190
     params:
         prefix=lambda wc, input: input.ref.replace(".transcripts.fa", ""),
         extra=config["params"]["rsem"],
@@ -93,7 +93,7 @@ rule rsem_bowtie2:
         "logs/rsem/{sample}_{unit}.bowtie.log",
     benchmark:
         "logs/rsem/{sample}_{unit}.bowtie.bench.tsv",
-    threads: 8
+    threads: 190
     params:
         prefix=lambda wc, input: input.ref.replace(".transcripts.fa", ""),
         extra=config["params"]["rsem"],
