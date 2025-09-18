@@ -4,13 +4,13 @@ channels:
   - r
   - defaults
 dependencies:
-  - r-base=4.3.*
-  - r-essentials=4.3.*
+  - r-base
+  - r-essentials
   - r-cli
   - r-tidyverse
   - r-stringr
   - r-conflicted
-  - bioconductor-deseq2=1.40.*
+  - bioconductor-deseq2
   - bioconductor-biocparallel
   - bioconductor-apeglm
   - bioconductor-biomart
