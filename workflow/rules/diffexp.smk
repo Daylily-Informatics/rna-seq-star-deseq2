@@ -15,7 +15,6 @@ rule count_matrix:
         "../envs/pandas.yaml"
     shell:
         """
-        set -euo pipefail
         python workflow/scripts/count-matrix.py \
             --output {output} \
             --samples "{params.samples}" \
@@ -39,8 +38,7 @@ rule gene_2_symbol:
         "../envs/biomart.yaml"
     shell:
         """
-        set -euo pipefail
-        line_count=$(awk 'END {print NR}' {input.counts})
+        line_count=$(awk 'END {{print NR}}' {input.counts})
         if [ "$line_count" -le 1 ]; then
             echo "Input {input.counts} has $line_count line(s); skipping gene symbol annotation." > {log}
             touch {output.symbol}
@@ -88,18 +86,6 @@ rule pca:
         "logs/pca.{variable}.log",
     shell:
         "touch {output}"
-
-#rule pca:
-#    input:
-#        "results/deseq2/all.rds",
-#    output:
-#        report("results/pca.{variable}.svg", "../report/pca.rst"),
-#    conda:
-#        "../envs/deseq2.yaml"
-#    log:
-#        "logs/pca.{variable}.log",
-#    script:
-#        "../scripts/plot-pca.R"
 
 
 rule deseq2:
