@@ -1,3 +1,6 @@
+import textwrap
+
+from snakemake.exceptions import WorkflowError
 from snakemake.utils import min_version
 
 ##### set minimum snakemake version #####
@@ -33,6 +36,69 @@ include: "rules/diffexp.smk"
 
 ##### target rules #####
 
-rule all:
+
+HELP_TEXT = textwrap.dedent(
+    """
+    RNA-seq workflow targets
+    ========================
+
+    This workflow does not run any analysis by default. Choose one of the
+    terminal targets below to execute a portion of the pipeline:
+
+      * snakemake produce_all           # run the full RNA-seq workflow
+      * snakemake produce_rsem_star     # generate RSEM outputs using STAR
+      * snakemake produce_rsem_bowtie2  # generate RSEM outputs using Bowtie2
+
+    Configure the workflow in config/config.yaml. For example, adjust the
+    "rsem_aligner" setting to switch between STAR and Bowtie2 when invoking
+    the dedicated RSEM targets.
+    """
+)
+
+
+rule produce_all:
     input:
         get_final_output(),
+
+
+if RSEM_ALIGNER == "star":
+
+    rule produce_rsem_star:
+        input:
+            get_rsem_outputs(),
+
+
+else:
+
+    rule produce_rsem_star:
+        run:
+            raise WorkflowError(
+                "The RSEM aligner is configured as '{aligner}'. Set 'rsem_aligner' to "
+                "'star' in config/config.yaml or via --config to build this target."
+                .format(aligner=RSEM_ALIGNER)
+            )
+
+
+if RSEM_ALIGNER == "bowtie2":
+
+    rule produce_rsem_bowtie2:
+        input:
+            get_rsem_outputs(),
+
+
+else:
+
+    rule produce_rsem_bowtie2:
+        run:
+            raise WorkflowError(
+                "The RSEM aligner is configured as '{aligner}'. Set 'rsem_aligner' to "
+                "'bowtie2' in config/config.yaml or via --config to build this target."
+                .format(aligner=RSEM_ALIGNER)
+            )
+
+
+rule all:
+    message:
+        HELP_TEXT
+    run:
+        print(HELP_TEXT)

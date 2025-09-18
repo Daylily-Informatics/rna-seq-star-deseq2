@@ -12,6 +12,34 @@ samples = (
 )
 
 
+def get_rsem_outputs():
+    outputs = list(
+        expand(
+            "results/rsem/{sample}_{unit}.genes.results",
+            zip,
+            sample=units.index.get_level_values("sample_name"),
+            unit=units.index.get_level_values("unit_name"),
+        )
+    )
+    outputs.extend(
+        expand(
+            "results/rsem/{sample}_{unit}.isoforms.results",
+            zip,
+            sample=units.index.get_level_values("sample_name"),
+            unit=units.index.get_level_values("unit_name"),
+        )
+    )
+    outputs.extend(
+        expand(
+            "results/rsem/{sample}_{unit}.genome.sorted.wig",
+            zip,
+            sample=units.index.get_level_values("sample_name"),
+            unit=units.index.get_level_values("unit_name"),
+        )
+    )
+    return outputs
+
+
 def get_final_output():
     #final_output = expand(
     #    "results/diffexp/{contrast}.diffexp.symbol.tsv",
@@ -21,38 +49,7 @@ def get_final_output():
     #final_output.append("results/counts/all.symbol.tsv")
     #final_output.append("results/qc/multiqc_report.html")
 
-    final_output = expand(
-        expand(
-            "results/rsem/{sample}_{unit}.genes.results",
-            zip,
-            sample=units.index.get_level_values("sample_name"),
-            unit=units.index.get_level_values("unit_name"),
-        )
-    )
-    final_output.extend(
-        expand(
-            "results/rsem/{sample}_{unit}.isoforms.results",
-            zip,
-            sample=units.index.get_level_values("sample_name"),
-            unit=units.index.get_level_values("unit_name"),
-        )
-    )
-    #final_output.extend(
-    #    expand(
-    #        "results/rsem/x{sample}_{unit}.isoforms.results",
-    #        zip,
-    #        sample=units.index.get_level_values("sample_name"),
-    #unit=units.index.get_level_values("unit_name"),
-    #)
-    #)
-    final_output.extend(
-        expand(
-            "results/rsem/{sample}_{unit}.genome.sorted.wig",
-            zip,
-            sample=units.index.get_level_values("sample_name"),
-            unit=units.index.get_level_values("unit_name"),
-        )
-    )
+    final_output = get_rsem_outputs()
 
     if config["pca"]["activate"]:
         # get all the variables to plot a PCA for
