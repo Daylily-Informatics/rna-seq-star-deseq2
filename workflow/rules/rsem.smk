@@ -35,7 +35,7 @@ rule rsem_index_bowtie:
         """
         rsem-prepare-reference --bowtie --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
         """
-	
+
 rule rsem_index_bowtie2:
     input:
         fasta="resources/genome.fasta",
@@ -57,11 +57,12 @@ rule rsem_index_bowtie2:
 
 rule rsem_bowtie2_quant:
     input:
-        bam="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
+        bam="results/rsem/{sample}_{unit}.genome.sorted.bam",
+        bai="results/rsem/{sample}_{unit}.genome.sorted.bam.bai",
         ref="resources/bowtie2_rsem.transcripts.fa",
     output:
-        genes="results/rsem/{sample}_{unit}.genes.results",
-        isoforms="results/rsem/{sample}_{unit}.isoforms.results",
+        genes="results/rsem/x{sample}_{unit}.genes.results",
+        isoforms="results/rsem/x{sample}_{unit}.isoforms.results",
     log:
         "logs/rsem/{sample}_{unit}.log",
     benchmark:
