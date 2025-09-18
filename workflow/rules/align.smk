@@ -6,6 +6,7 @@ rule align:
     output:
         aln="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
         reads_per_gene="results/star/{sample}_{unit}/ReadsPerGene.out.tab",
+        transcriptome="results/star/{sample}_{unit}/Aligned.toTranscriptome.out.bam",
     log:
         "logs/star/{sample}_{unit}.log",
     benchmark:
@@ -13,6 +14,6 @@ rule align:
     threads: 127
     params:
         idx=lambda wc, input: input.index,
-        extra=lambda wc, input: f'--outSAMtype BAM SortedByCoordinate --quantMode GeneCounts --sjdbGTFfile {input.gtf} {config["params"]["star"]} ',
+        extra=lambda wc, input: f'--outSAMtype BAM SortedByCoordinate --quantMode GeneCounts TranscriptomeSAM --sjdbGTFfile {input.gtf} {config["params"]["star"]} ',
     wrapper:
         "v3.5.3/bio/star/align"
