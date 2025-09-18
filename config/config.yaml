@@ -65,6 +65,3 @@ params:
   cutadapt-se: ""
   star: ""
   rsem: ""
-
-# Select which aligner RSEM should use. Supported values: "star" or "bowtie2".
-rsem_aligner: star
