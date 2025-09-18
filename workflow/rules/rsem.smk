@@ -3,7 +3,7 @@ rule rsem_index_star:
         fasta="resources/genome.fasta",
         gtf="resources/genome.gtf",
     output:
-        transcripts="resources/star_rsem/rsem.transcripts.fa",
+        transcripts="resources/star_rsem.transcripts.fa",
     params:
         prefix=lambda wc, output: output.transcripts.replace(".transcripts.fa", ""),
         extra=config["params"]["rsem"],
@@ -11,7 +11,7 @@ rule rsem_index_star:
         "logs/rsem/prepare_reference.log",
     threads: 8
     cache: True
-    container: "docker://daylilyinformatics/rsem:1.3.3.3"
+    container: "docker://daylilyinformatics/rsem:1.3.3.4"
     shell:
         """
         rsem-prepare-reference --star --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
@@ -22,15 +22,15 @@ rule rsem_index_bowtie:
         fasta="resources/genome.fasta",
         gtf="resources/genome.gtf",
     output:
-        transcripts="resources/bowtie_rsem/rsem.transcripts.fa",
+        transcripts="resources/bowtie_rsem.transcripts.fa",
     params:
-        prefix=lambda wc, output: output.transcripts.replace("/rsem.transcripts.fa", ""),
+        prefix=lambda wc, output: output.transcripts.replace(".transcripts.fa", ""),
         extra=config["params"]["rsem"],
     log:
         "logs/rsem/prepare_reference.log",
     threads: 8
     cache: True
-    container: "docker://daylilyinformatics/rsem:1.3.3.3"
+    container: "docker://daylilyinformatics/rsem:1.3.3.4"
     shell:
         """
         rsem-prepare-reference --bowtie --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
@@ -41,15 +41,15 @@ rule rsem_index_bowtie2:
         fasta="resources/genome.fasta",
         gtf="resources/genome.gtf",
     output:
-        transcripts="resources/bowtie2_rsem/rsem.transcripts.fa",
+        transcripts="resources/bowtie2_rsem.transcripts.fa",
     params:
-        prefix=lambda wc, output: output.transcripts.replace("/rsem.transcripts.fa", ""),
+        prefix=lambda wc, output: output.transcripts.replace(".transcripts.fa", ""),
         extra=config["params"]["rsem"],
     log:
         "logs/rsem/prepare_reference.log",
     threads: 8
     cache: True
-    container: "docker://daylilyinformatics/rsem:1.3.3.3"
+    container: "docker://daylilyinformatics/rsem:1.3.3.4"
     shell:
         """
         rsem-prepare-reference --bowtie2 --gtf {input.gtf} {input.fasta} {params.extra} {params.prefix} &> {log}
@@ -71,7 +71,7 @@ rule rsem_bowtie2_quant:
         prefix=lambda wc, input: input.ref.replace("/rsem.transcripts.fa", ""),
         extra=config["params"]["rsem"],
         paired=lambda wc: "--paired-end" if is_paired_end(wc.sample) else "",
-    container: "docker://daylilyinformatics/rsem:1.3.3.3"
+    container: "docker://daylilyinformatics/rsem:1.3.3.4"
     shell:
         """
         rsem-calculate-expression --bowtie2 --alignments {params.paired} -p {threads} {params.extra} {input.bam} {params.prefix} results/rsem/{wildcards.sample}_{wildcards.unit} &> {log}
@@ -98,7 +98,7 @@ rule rsem_bowtie2:
         extra=config["params"]["rsem"],
         paired=lambda wc: "--paired-end" if is_paired_end(wc.sample) else "",
         fq_inputs=lambda wc, input: " ".join([input.fq1] + ([input.fq2] if is_paired_end(wc.sample) else [])),
-    container: "docker://daylilyinformatics/rsem:1.3.3.3"
+    container: "docker://daylilyinformatics/rsem:1.3.3.4"
     shell:
         """
         (
