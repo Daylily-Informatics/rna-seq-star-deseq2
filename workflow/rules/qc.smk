@@ -173,7 +173,7 @@ rule rseqc_gene_body_coverage:
         bed="results/qc/rseqc/annotation.bed",
     output:
         txt="results/qc/rseqc/{sample}_{unit}.genebody.geneBodyCoverage.txt",
-        pdf="results/qc/rseqc/{sample}_{unit}.genebody.geneBodyCoverage.pdf",
+        pdf="results/qc/rseqc/{sample}_{unit}.genebody.geneBodyCoverage.curves.pdf",
     threads: 32
     priority: 1
     log:
@@ -197,7 +197,7 @@ rule rseqc_gene_body_coverage_all:
         bed="results/qc/rseqc/annotation.bed",
     output:
         txt="results/qc/rseqc/all.genebody.geneBodyCoverage.txt",
-        pdf="results/qc/rseqc/all.genebody.geneBodyCoverage.pdf",
+        pdf="results/qc/rseqc/all.genebody.geneBodyCoverage.curves.pdf",
     threads: 32
     log:
         "logs/rseqc/rseqc_gene_body/all.log",
@@ -258,11 +258,11 @@ rule multiqc:
             unit=units_list,
         ),
         expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.genebody.geneBodyCoverage.pdf",
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.genebody.geneBodyCoverage.curves.pdf",
             unit=units_list,
         ),
         "results/qc/rseqc/all.genebody.geneBodyCoverage.txt",
-        "results/qc/rseqc/all.genebody.geneBodyCoverage.pdf",
+        "results/qc/rseqc/all.genebody.geneBodyCoverage.curves.pdf",
     threads: 32
     output:
         "results/qc/multiqc_report.html",
