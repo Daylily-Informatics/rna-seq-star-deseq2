@@ -9,12 +9,20 @@ rule count_matrix:
     log:
         "logs/count-matrix.log",
     params:
-        samples=units["sample_name"].tolist(),
-        strand=get_strandedness(units),
+        samples=lambda wildcards: ",".join(units["sample_name"].tolist()),
+        strands=lambda wildcards: ",".join(get_strandedness(units)),
     conda:
         "../envs/pandas.yaml"
-    script:
-        "../scripts/count-matrix.py"
+    shell:
+        """
+        set -euo pipefail
+        python workflow/scripts/count-matrix.py \
+            --output {output} \
+            --samples "{params.samples}" \
+            --strands "{params.strands}" \
+            {input} \
+            > {log} 2>&1
+        """
 
 
 rule gene_2_symbol:
@@ -22,6 +30,7 @@ rule gene_2_symbol:
         counts="{prefix}.tsv",
     output:
         symbol="{prefix}.symbol.tsv",
+        nodata="{prefix}.symbol.tsv.NODATA",
     params:
         species=get_bioc_species_name(),
     log:
@@ -30,7 +39,21 @@ rule gene_2_symbol:
         "../envs/biomart.yaml"
     shell:
         """
-        touch {output}
+        set -euo pipefail
+        line_count=$(awk 'END {print NR}' {input.counts})
+        if [ "$line_count" -le 1 ]; then
+            echo "Input {input.counts} has $line_count line(s); skipping gene symbol annotation." > {log}
+            touch {output.symbol}
+            touch {output.nodata}
+        else
+            rm -f {output.nodata}
+            echo "Annotating gene symbols for {input.counts}." > {log}
+            Rscript workflow/scripts/gene2symbol.R \
+                --counts {input.counts} \
+                --output {output.symbol} \
+                --species {params.species} \
+                >> {log} 2>&1
+        fi
         """
 
 
