@@ -63,12 +63,18 @@ properties:
         type: string
       cutadapt-se:
         type: string
-      star: 
+      star:
         type: string
     required:
       - cutadapt-pe
       - cutadapt-se
       - star
+
+  rsem_aligner:
+    type: string
+    enum:
+      - star
+      - bowtie2
 
 required:
   - samples
