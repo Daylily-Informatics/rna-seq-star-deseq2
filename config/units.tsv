@@ -1,2 +1,2 @@
 sample_name	unit_name	fq1	fq2	sra	adapters	strandedness
-R0b_H37021-20250314-ILMN-rnaseq-tissue-tumor_TTGGACTT-ATCCACTG_0	unit1	/path/to/sample_R1.fastq.gz	/path/to/sample_R2.fastq.gz			none
+a	1	/fsx/analysis_results/ubuntu/deseq2/rna-seq-star-deseq2/.test/ngs-test-data/reads/a.chr21.1.fq	/fsx/analysis_results/ubuntu/deseq2/rna-seq-star-deseq2/.test/ngs-test-data/reads/a.chr21.2.fq			
