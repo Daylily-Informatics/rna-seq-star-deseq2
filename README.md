@@ -28,13 +28,13 @@ git clone git@github.com:Daylily-Informatics/rna-seq-star-deseq2.git
 cd rna-seq-star-deseq2
 ```
 
-## Build The Snakemake (v8.*) Conda Env
+## Build The `drnaseq` Conda Env
 ```bash
-conda create -n snakemake -c conda-forge  snakemake==9.5.1 snakedeploy tabulate yaml
-conda activate snakemake
+conda create -n drnaseq -c conda-forge  snakemake==9.5.1 snakedeploy tabulate yaml
+conda activate drnaseq
 pip install snakemake-executor-plugin-pcluster-slurm==0.0.31
 
-conda activate snakemake
+conda activate drnaseq
 snakemake --version
 # 9.5.1 
 ```
@@ -46,7 +46,7 @@ _you are advised to run the following in a tmux or screen session_
 #### Prepare Cache and TMPDIR
 
 ```bash
-conda activate snakemake
+conda activate drnaseq
 
 # Set your cache dir for saving resources useful across other jobs, snakemake uses this when the `--cache` flag is set.
 
