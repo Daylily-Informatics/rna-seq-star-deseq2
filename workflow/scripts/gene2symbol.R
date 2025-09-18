@@ -58,23 +58,69 @@ while (class(mart)[[1]] != "Mart") {
   )
 }
 
-df <- read.table(snakemake@input[["counts"]], sep = '\t', header = 1)
 
+
+
+# ---- load counts ----
+df <- read.table(
+  snakemake@input[["counts"]],
+  sep = "\t", header = TRUE, check.names = FALSE,
+  quote = "", comment.char = ""
+)
+
+# explicit override or heuristic detection
+gene_col <- snakemake@params[["gene_col"]]
+if (is.null(gene_col) || !nzchar(gene_col) || !(gene_col %in% colnames(df))) {
+  candidates <- c("gene","Gene","gene_id","Geneid","GeneID","ENSEMBL","Ensembl","EnsemblID")
+  gene_col <- intersect(candidates, colnames(df))[1]
+  if (is.na(gene_col)) {
+    # pick a char-like column that looks like ENS*
+    char_cols <- names(df)[vapply(df, function(x) is.character(x) || is.factor(x), logical(1))]
+    ens_like <- char_cols[vapply(df[char_cols], function(x) any(grepl("^ENS[A-Z]*\\d+", as.character(x))), logical(1))]
+    gene_col <- if (length(ens_like)) ens_like[1] else NA
+  }
+}
+if (is.na(gene_col)) {
+  cli::cli_abort(c(
+    "!"="Could not identify a gene column.",
+    "i"="Columns present: {toString(colnames(df))}",
+    "i"="Set params[['gene_col']] or include a column named 'gene'/'gene_id'."
+  ))
+}
+
+# normalize to 'gene' column
+df <- dplyr::rename(df, gene = !!gene_col)
+df$gene <- as.character(df$gene)
+
+# STAR ReadsPerGene summary lines? drop if present
+df <- df[!df$gene %in% c("N_unmapped","N_multimapping","N_noFeature","N_ambiguous"), , drop=FALSE]
+
+# strip ENS version suffixes like '.7'
+df$gene <- sub("\\.\\d+$", "", df$gene)
+
+# drop blank/NA
+df <- dplyr::filter(df, !is.na(gene) & gene != "")
+if (nrow(df) == 0) {
+  cli::cli_abort("After parsing, no usable gene IDs found in column '{gene_col}'.")
+}
+
+uniq_ids <- unique(df$gene)
+
+# ---- biomaRt ----
 g2g <- biomaRt::getBM(
-  attributes = c("ensembl_gene_id", "external_gene_name"),
-  filters = "ensembl_gene_id",
-  values = df$gene,
-  mart = mart
+  attributes = c("ensembl_gene_id","external_gene_name"),
+  filters    = "ensembl_gene_id",
+  values     = uniq_ids,
+  mart       = mart
 )
 
-annotated <- merge(df, g2g, by.x = "gene", by.y = "ensembl_gene_id")
-annotated$gene <- ifelse(
-  annotated$external_gene_name == '',
-  annotated$gene,
-  annotated$external_gene_name
-)
-annotated$external_gene_name <- NULL
-write.table(annotated, snakemake@output[["symbol"]], sep = '\t', row.names = FALSE)
+# ---- join + prefer symbols ----
+annotated <- df |>
+  dplyr::left_join(g2g, by = c("gene" = "ensembl_gene_id")) |>
+  dplyr::mutate(gene = dplyr::if_else(is.na(external_gene_name) | external_gene_name == "", gene, external_gene_name)) |>
+  dplyr::select(-external_gene_name)
+
+write.table(annotated, snakemake@output[["symbol"]], sep = "\t", row.names = FALSE, quote = FALSE)
 
 sink(type = "message")
 sink()
