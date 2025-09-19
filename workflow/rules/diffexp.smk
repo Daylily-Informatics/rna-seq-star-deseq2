@@ -1,3 +1,76 @@
+from pathlib import Path
+import re
+
+
+_FRACTION_PATTERN = re.compile(r":\s*([0-9]*\.?[0-9]+)")
+_FORWARD_KEYS = ("1++,1--,2+-,2-+", "++,--")
+_REVERSE_KEYS = ("1+-,1-+,2++,2--", "+-,-+")
+_STRANDEDNESS_THRESHOLD = 0.6
+
+
+def _extract_fraction(line):
+    match = _FRACTION_PATTERN.search(line)
+    if not match:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
+def _infer_strand_from_file(path, default):
+    try:
+        lines = Path(path).read_text().splitlines()
+    except OSError:
+        return default
+
+    forward = None
+    reverse = None
+    for line in lines:
+        if any(key in line for key in _FORWARD_KEYS):
+            value = _extract_fraction(line)
+            if value is not None:
+                forward = value
+        elif any(key in line for key in _REVERSE_KEYS):
+            value = _extract_fraction(line)
+            if value is not None:
+                reverse = value
+
+    if forward is None and reverse is None:
+        return default
+
+    forward = forward if forward is not None else 0.0
+    reverse = reverse if reverse is not None else 0.0
+
+    if forward >= _STRANDEDNESS_THRESHOLD and forward >= reverse:
+        return "yes"
+    if reverse >= _STRANDEDNESS_THRESHOLD and reverse > forward:
+        return "reverse"
+
+    return default
+
+
+def _get_inferred_strands(infer_files):
+    defaults = get_strandedness(units)
+    if not infer_files:
+        return defaults
+
+    strands = [
+        _infer_strand_from_file(path, default)
+        for path, default in zip(infer_files, defaults)
+    ]
+
+    if len(strands) < len(defaults):
+        strands.extend(defaults[len(strands):])
+    elif len(infer_files) > len(defaults):
+        strands.extend(
+            _infer_strand_from_file(path, "none")
+            for path in infer_files[len(defaults) :]
+        )
+
+    return strands
+
+
 rule count_matrix:
     input:
         reads = expand(
@@ -15,7 +88,9 @@ rule count_matrix:
         "logs/count-matrix.log"
     params:
         samples = ",".join(units["sample_name"].tolist()),
-        strands = ",".join(["none"] * len(units))   # or your real per-sample value
+        strands = lambda wildcards, input: ",".join(
+            _get_inferred_strands(list(input.infer))
+        )
     conda:
         "../envs/pandas.yaml"
     threads: 1
