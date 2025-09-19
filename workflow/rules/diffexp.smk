@@ -6,7 +6,7 @@ rule count_matrix:
         ),
         # OPTIONAL: provide per-sample infer_experiment outputs when available
         infer = expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}/infer_experiment.txt",
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.infer_experiment.txt",
             unit=units.itertuples(),
         )
     output:
@@ -14,9 +14,8 @@ rule count_matrix:
     log:
         "logs/count-matrix.log"
     params:
-        samples = list(units["sample_name"].tolist()),
-        # fallback per sample; swap with your real call if you have it
-        fallback_strand = ["none"] * len(units)
+        samples = ",".join(units["sample_name"].tolist()),
+        strands = ",".join(["none"] * len(units))   # or your real per-sample value
     conda:
         "../envs/pandas.yaml"
     threads: 1
@@ -25,8 +24,8 @@ rule count_matrix:
         python workflow/scripts/count-matrix.py \
             --output {output} \
             --samples "{params.samples}" \
-            --strands "{params.fallback_strand}" \
-            {input} \
+            --strands "{params.strands}" \
+            {input.reads} \
             > {log} 2>&1
         """
 
