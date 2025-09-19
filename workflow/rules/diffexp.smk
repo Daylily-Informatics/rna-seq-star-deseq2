@@ -1,20 +1,33 @@
 rule count_matrix:
     input:
-        expand(
+        reads = expand(
             "results/star/{unit.sample_name}_{unit.unit_name}/ReadsPerGene.out.tab",
             unit=units.itertuples(),
         ),
+        # OPTIONAL: provide per-sample infer_experiment outputs when available
+        infer = expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.infer_experiment.txt",
+            unit=units.itertuples(),
+        )
     output:
-        "results/counts/all.tsv",
+        "results/counts/all.tsv"
     log:
-        "logs/count-matrix.log",
+        "logs/count-matrix.log"
     params:
-        samples=units["sample_name"].tolist(),
-        strand=get_strandedness(units),
+        samples = ",".join(units["sample_name"].tolist()),
+        strands = ",".join(["none"] * len(units))   # or your real per-sample value
     conda:
         "../envs/pandas.yaml"
-    script:
-        "../scripts/count-matrix.py"
+    threads: 1
+    shell:
+        """
+        python workflow/scripts/count-matrix.py \
+            --output {output} \
+            --samples "{params.samples}" \
+            --strands "{params.strands}" \
+            {input.reads} \
+            > {log} 2>&1
+        """
 
 
 rule gene_2_symbol:
@@ -22,6 +35,7 @@ rule gene_2_symbol:
         counts="{prefix}.tsv",
     output:
         symbol="{prefix}.symbol.tsv",
+        nodata="{prefix}.symbol.tsv.NODATA",
     params:
         species=get_bioc_species_name(),
     log:
@@ -30,7 +44,20 @@ rule gene_2_symbol:
         "../envs/biomart.yaml"
     shell:
         """
-        touch {output}
+        line_count=$(awk 'END {{print NR}}' {input.counts})
+        if [ "$line_count" -le 1 ]; then
+            echo "Input {input.counts} has $line_count line(s); skipping gene symbol annotation." > {log}
+            touch {output.symbol}
+            touch {output.nodata}
+        else
+            rm -f {output.nodata}
+            echo "Annotating gene symbols for {input.counts}." > {log}
+            Rscript workflow/scripts/gene2symbol.R \
+                --counts {input.counts} \
+                --output {output.symbol} \
+                --species {params.species} \
+                >> {log} 2>&1
+        fi
         """
 
 
@@ -65,18 +92,6 @@ rule pca:
         "logs/pca.{variable}.log",
     shell:
         "touch {output}"
-
-#rule pca:
-#    input:
-#        "results/deseq2/all.rds",
-#    output:
-#        report("results/pca.{variable}.svg", "../report/pca.rst"),
-#    conda:
-#        "../envs/deseq2.yaml"
-#    log:
-#        "logs/pca.{variable}.log",
-#    script:
-#        "../scripts/plot-pca.R"
 
 
 rule deseq2:

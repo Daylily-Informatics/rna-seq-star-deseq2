@@ -106,8 +106,15 @@ rule rseqc_gtf2bed:
         "logs/rseqc_gtf2bed.log",
     conda:
         "../envs/gffutils.yaml"
-    script:
-        "../scripts/gtf2bed.py"
+    shell:
+        """
+        set -euo pipefail
+        python workflow/scripts/gtf2bed.py \
+            --input {input} \
+            --bed {output.bed} \
+            --db {output.db} \
+            > {log} 2>&1
+        """
 
 
 rule rseqc_junction_annotation:

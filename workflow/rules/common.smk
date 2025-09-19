@@ -36,8 +36,20 @@ def get_final_output():
 
 validate(samples, schema="../schemas/samples.schema.yaml")
 
+#units = (
+#    pd.read_csv(config["units"], sep="\t", dtype={"sample_name": str, "unit_name": str})
+#    .set_index(["sample_name", "unit_name"], drop=False)
+#    .sort_index()
+#)
 units = (
-    pd.read_csv(config["units"], sep="\t", dtype={"sample_name": str, "unit_name": str})
+    pd.read_csv(
+        config["units"],
+        sep="\t",
+        dtype=str,               # ← all cols strings
+        keep_default_na=False,   # ← "" stays "", no NaN
+        na_filter=False,
+    )
+    .applymap(lambda x: x.strip() if isinstance(x, str) else x)
     .set_index(["sample_name", "unit_name"], drop=False)
     .sort_index()
 )

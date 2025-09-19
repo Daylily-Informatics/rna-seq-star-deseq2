@@ -1,2 +1,19 @@
-sample_name	condition
-a	untreated
+sample_name	condition	patient
+R0c_H37002-BG002179-ILMN-rnaseq-tissue-tumor_S4_0	normal	H37002
+R0c_H37002-BG004281-ILMN-rnaseq-tissue-tumor_S5_0	normal	H37002
+R0c_H37004-2022-Resection-ILMN-rnaseq-tissue-tumor_S8_0	normal	H37004
+R0c_H37006-Mofit-2023-10-15-ILMN-rnaseq-tissue-organoid_S14_0	normal	H37006
+R0c_H37001-BG006103-ILMN-rnaseq-tissue-tumor_S14_0	normal	H37001
+R0c_H37001-BG-05182023-ILMN-rnaseq-tissue-tumor_S17_0	normal	H37001
+R0c_H37001-BG-duodenal-042023-ILMN-rnaseq-tissue-tumor_S20_0	normal	H37001
+R0c_H37011-BG005019-ILMN-rnaseq-tissue-tumor_S25_0	normal	H37011
+R0c_H37016-DAU27710-ILMN-rnaseq-tissue-tumor_S30_0	normal	H37016
+R0c_H37016-DAU28135-ILMN-rnaseq-tissue-tumor_S33_0	normal	H37016
+R0c_H37009-Tempus-TL-24-S3U64GWWOR-ILMN-rnaseq-tissue-tumor_S34_0	normal	H37009
+R0c_H37009-Tempus-TL-23-49B6RVQK-ILMN-rnaseq-tissue-tumor_S36_0	normal	H37009
+R1c_H37016-BG013656-ILMN-rnaseq-tissue-tumor_S1_0	normal	H37016
+R1c_H37019-BG013543-ILMN-rnaseq-tissue-tumor_S4_0	normal	H37019
+R1c_H37020-BG013759-ILMN-rnaseq-tissue-tumor_S7_0	normal	H37020
+R3c_H37021-BG012177-ILMN-rnaseq-tissue-tumor_S1_0	normal	H37021
+R3c_H37021-CeGaT-Liver-2023-ILMN-rnaseq-tissue-tumor_S2_0	normal	H37021
+R3c_H37021-15054597-2023-11-ILMN-rnaseq-tissue-tumor_S3_0	normal	H37021
