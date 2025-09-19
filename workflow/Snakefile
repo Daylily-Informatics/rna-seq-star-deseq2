@@ -100,5 +100,5 @@ else:
 rule all:
     message:
         HELP_TEXT
-    run:
-        print(HELP_TEXT)
+    shell:
+        lambda wildcards: "cat <<'EOF'\n" + HELP_TEXT + "\nEOF"
