@@ -10,7 +10,7 @@ rule align:
         "logs/star/{sample}_{unit}.log",
     benchmark:
         "logs/star/{sample}_{unit}.bench.tsv",
-    threads: 190
+    threads: 127
     resources:
         tmpdir="/dev/shm"
     params:
