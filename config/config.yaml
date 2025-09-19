@@ -24,6 +24,11 @@ trimming:
 mergeReads:
   activate: False
 
+relatedness:
+  activate: true
+  contamination_threshold: 0.95
+  same_patient_threshold: 0.85
+
 pca:
   activate: False
   # Per default, a separate PCA plot is generated for each of the
