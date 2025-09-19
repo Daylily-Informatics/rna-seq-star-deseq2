@@ -1,24 +1,31 @@
 rule count_matrix:
     input:
-        expand(
+        reads = expand(
             "results/star/{unit.sample_name}_{unit.unit_name}/ReadsPerGene.out.tab",
             unit=units.itertuples(),
         ),
+        # OPTIONAL: provide per-sample infer_experiment outputs when available
+        infer = expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}/infer_experiment.txt",
+            unit=units.itertuples(),
+        )
     output:
-        "results/counts/all.tsv",
+        "results/counts/all.tsv"
     log:
-        "logs/count-matrix.log",
+        "logs/count-matrix.log"
     params:
-        samples=lambda wildcards: ",".join(units["sample_name"].tolist()),
-        strands=lambda wildcards: ",".join(get_strandedness(units)),
+        samples = list(units["sample_name"].tolist()),
+        # fallback per sample; swap with your real call if you have it
+        fallback_strand = ["none"] * len(units)
     conda:
         "../envs/pandas.yaml"
+    threads: 1
     shell:
         """
         python workflow/scripts/count-matrix.py \
             --output {output} \
             --samples "{params.samples}" \
-            --strands "{params.strands}" \
+            --strands "{params.fallback_strand}" \
             {input} \
             > {log} 2>&1
         """
