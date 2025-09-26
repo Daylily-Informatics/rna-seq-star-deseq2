@@ -71,6 +71,10 @@ def _get_inferred_strands(infer_files):
     return strands
 
 
+def _nz(val):
+    return "none" if val is None or str(val).strip() == "" else str(val)
+
+
 rule count_matrix:
     input:
         reads = expand(
@@ -91,7 +95,7 @@ rule count_matrix:
     params:
         samples = ",".join(units["sample_name"].tolist()),
         strands = lambda wildcards, input: ",".join(
-            _get_inferred_strands(list(input.infer))
+            _nz(s) for s in _get_inferred_strands(list(input.infer))
         )
     conda:
         "../envs/pandas.yaml"
