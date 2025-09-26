@@ -143,3 +143,5 @@ snakemake --use-conda --use-singularity   \
 - Edit `config/config.yaml` to change aspects of the pipeline.
 - Run the `snakemake` command above *with* `-n`, tweak `-j` as needed, and if all looks good, run w/out `-n`.
  
+ 
+c 

@@ -136,7 +136,7 @@ rule gene_2_symbol:
             --counts {input.counts} \
             --output {output.symbol} \
             --species {params.species} \
-            >> {log} 2>&1;
+            >> {log} 2>&1 || touch {output} ;
         
         """
 
