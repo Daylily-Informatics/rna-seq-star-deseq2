@@ -27,6 +27,10 @@ These examples illustrate the layout teams can rely on when integrating results 
 
 ## Prerequisites
 
+### `daylily-ephemeral-cluster` (using AWS Parallel Cluster)
+- This has been developed to run on an AWS Parallel Cluster slurm headnode, specifically one created using [https://github.com/Daylily-Informatics/daylily-ephemeral-cluster](https://github.com/Daylily-Informatics/daylily-ephemeral-cluster).
+
+### Other
 1. An active AWS ParallelCluster deployment with Slurm (either a self-managed cluster or the [daylily-ephemeral-cluster](https://github.com/Daylily-Informatics/daylily-ephemeral-cluster)).
 2. Conda or Miniconda available on the head node. The provided `bin/install_miniconda` script can be used if Conda is not already present.
 3. User access to shared FSx (or comparable) storage for caching environments, containers, and references.
