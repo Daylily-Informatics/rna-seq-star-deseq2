@@ -127,19 +127,19 @@ rule gene_2_symbol:
         "../envs/biomart.yaml"
     shell:
         """
-        line_count=$(awk 'END {{print NR}}' {input.counts})
+        line_count=$(awk 'END {{print NR}}' {input.counts});
         if [ "$line_count" -le 1 ]; then
-            echo "Input {input.counts} has $line_count line(s); skipping gene symbol annotation." > {log}
-            touch {output.symbol}
-            touch {output.nodata}
+            echo "Input {input.counts} has $line_count line(s); skipping gene symbol annotation." > {log};
+            touch {output.symbol};
+            touch {output.nodata};
         else
-            rm -f {output.nodata}
-            echo "Annotating gene symbols for {input.counts}." > {log}
+            rm -f {output.nodata};
+            echo "Annotating gene symbols for {input.counts}." > {log};
             Rscript workflow/scripts/gene2symbol.R \
                 --counts {input.counts} \
                 --output {output.symbol} \
                 --species {params.species} \
-                >> {log} 2>&1
+                >> {log} 2>&1;
         fi
         """
 

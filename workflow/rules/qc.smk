@@ -198,23 +198,6 @@ def get_multiqc_inputs(wildcards):
     return inputs
 
 
-rule fastqc:
-    input:
-        fastq=get_fastqc_fastq,
-    output:
-        html="results/qc/fastqc/{sample}_{unit}_{read}_fastqc.html",
-        zip="results/qc/fastqc/{sample}_{unit}_{read}_fastqc.zip",
-    threads: 4
-    log:
-        "logs/fastqc/{sample}_{unit}_{read}.log",
-    benchmark:
-        "logs/fastqc/{sample}_{unit}_{read}.bench.tsv",
-    params:
-        extra="",
-    wrapper:
-        "v3.5.3/bio/fastqc"
-
-
 rule rseqc_gtf2bed:
     input:
         "resources/genome.gtf",
