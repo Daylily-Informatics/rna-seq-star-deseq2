@@ -1,3 +1,80 @@
+from pathlib import Path
+import re
+
+
+_FRACTION_PATTERN = re.compile(r":\s*([0-9]*\.?[0-9]+)")
+_FORWARD_KEYS = ("1++,1--,2+-,2-+", "++,--")
+_REVERSE_KEYS = ("1+-,1-+,2++,2--", "+-,-+")
+_STRANDEDNESS_THRESHOLD = 0.6
+
+
+def _extract_fraction(line):
+    match = _FRACTION_PATTERN.search(line)
+    if not match:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
+def _infer_strand_from_file(path, default):
+    try:
+        lines = Path(path).read_text().splitlines()
+    except OSError:
+        return default
+
+    forward = None
+    reverse = None
+    for line in lines:
+        if any(key in line for key in _FORWARD_KEYS):
+            value = _extract_fraction(line)
+            if value is not None:
+                forward = value
+        elif any(key in line for key in _REVERSE_KEYS):
+            value = _extract_fraction(line)
+            if value is not None:
+                reverse = value
+
+    if forward is None and reverse is None:
+        return default
+
+    forward = forward if forward is not None else 0.0
+    reverse = reverse if reverse is not None else 0.0
+
+    if forward >= _STRANDEDNESS_THRESHOLD and forward >= reverse:
+        return "yes"
+    if reverse >= _STRANDEDNESS_THRESHOLD and reverse > forward:
+        return "reverse"
+
+    return default
+
+
+def _get_inferred_strands(infer_files):
+    defaults = get_strandedness(units)
+    if not infer_files:
+        return defaults
+
+    strands = [
+        _infer_strand_from_file(path, default)
+        for path, default in zip(infer_files, defaults)
+    ]
+
+    if len(strands) < len(defaults):
+        strands.extend(defaults[len(strands):])
+    elif len(infer_files) > len(defaults):
+        strands.extend(
+            _infer_strand_from_file(path, "none")
+            for path in infer_files[len(defaults) :]
+        )
+
+    return strands
+
+
+def _nz(val):
+    return "none" if val is None or str(val).strip() == "" else str(val)
+
+
 rule count_matrix:
     input:
         reads = expand(
@@ -13,9 +90,13 @@ rule count_matrix:
         "results/counts/all.tsv"
     log:
         "logs/count-matrix.log"
+    benchmark:
+        "logs/count-matrix.bench.tsv"
     params:
         samples = ",".join(units["sample_name"].tolist()),
-        strands = ",".join(["none"] * len(units))   # or your real per-sample value
+        strands = lambda wildcards, input: ",".join(
+            _nz(s) for s in _get_inferred_strands(list(input.infer))
+        )
     conda:
         "../envs/pandas.yaml"
     threads: 1
@@ -40,6 +121,8 @@ rule gene_2_symbol:
         species=get_bioc_species_name(),
     log:
         "logs/gene2symbol/{prefix}.log",
+    benchmark:
+        "logs/gene2symbol/{prefix}.bench.tsv",
     conda:
         "../envs/biomart.yaml"
     shell:
@@ -71,6 +154,8 @@ rule deseq2_init:
         "../envs/deseq2.yaml"
     log:
         "logs/deseq2/init.log",
+    benchmark:
+        "logs/deseq2/init.bench.tsv",
     threads: get_deseq2_threads()
     shell:
         """
@@ -90,6 +175,8 @@ rule pca:
         "../envs/deseq2.yaml"
     log:
         "logs/pca.{variable}.log",
+    benchmark:
+        "logs/pca.{variable}.bench.tsv",
     shell:
         "touch {output}"
 
@@ -106,6 +193,8 @@ rule deseq2:
         "../envs/deseq2.yaml"
     log:
         "logs/deseq2/{contrast}.diffexp.log",
+    benchmark:
+        "logs/deseq2/{contrast}.diffexp.bench.tsv",
     threads: get_deseq2_threads()
     shell:
         "touch {output}"

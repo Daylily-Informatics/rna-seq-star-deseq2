@@ -89,6 +89,8 @@ rule fastqc:
     threads: 4
     log:
         "logs/fastqc/{sample}_{unit}_{read}.log",
+    benchmark:
+        "logs/fastqc/{sample}_{unit}_{read}.bench.tsv",
     params:
         extra="",
     wrapper:
@@ -104,6 +106,8 @@ rule rseqc_gtf2bed:
     threads: 32
     log:
         "logs/rseqc_gtf2bed.log",
+    benchmark:
+        "logs/rseqc_gtf2bed.bench.tsv",
     conda:
         "../envs/gffutils.yaml"
     shell:
@@ -126,6 +130,8 @@ rule rseqc_junction_annotation:
     priority: 1
     log:
         "logs/rseqc/rseqc_junction_annotation/{sample}_{unit}.log",
+    benchmark:
+        "logs/rseqc/rseqc_junction_annotation/{sample}_{unit}.bench.tsv",
     params:
         extra=r"-q 255",  # STAR uses 255 as a score for unique mappers
         prefix=lambda w, output: output[0].replace(".junction.bed", ""),
@@ -148,6 +154,8 @@ rule rseqc_junction_saturation:
     threads: 32
     log:
         "logs/rseqc/rseqc_junction_saturation/{sample}_{unit}.log",
+    benchmark:
+        "logs/rseqc/rseqc_junction_saturation/{sample}_{unit}.bench.tsv",
     params:
         extra=r"-q 255",
         prefix=lambda w, output: output[0].replace(".junctionSaturation_plot.pdf", ""),
@@ -166,6 +174,8 @@ rule rseqc_stat:
     priority: 1
     log:
         "logs/rseqc/rseqc_stat/{sample}_{unit}.log",
+    benchmark:
+        "logs/rseqc/rseqc_stat/{sample}_{unit}.bench.tsv",
     threads: 32
     conda:
         "../envs/rseqc.yaml"
@@ -184,6 +194,8 @@ rule rseqc_infer:
     priority: 1
     log:
         "logs/rseqc/rseqc_infer/{sample}_{unit}.log",
+    benchmark:
+        "logs/rseqc/rseqc_infer/{sample}_{unit}.bench.tsv",
     threads: 32
     conda:
         "../envs/rseqc.yaml"
@@ -202,6 +214,8 @@ rule rseqc_innerdis:
     priority: 1
     log:
         "logs/rseqc/rseqc_innerdis/{sample}_{unit}.log",
+    benchmark:
+        "logs/rseqc/rseqc_innerdis/{sample}_{unit}.bench.tsv",
     params:
         prefix=lambda w, output: output[0].replace(".inner_distance.txt", ""),
     threads: 32
@@ -223,6 +237,8 @@ rule rseqc_readdis:
     priority: 1
     log:
         "logs/rseqc/rseqc_readdis/{sample}_{unit}.log",
+    benchmark:
+        "logs/rseqc/rseqc_readdis/{sample}_{unit}.bench.tsv",
     conda:
         "../envs/rseqc.yaml"
     shell:
@@ -240,6 +256,8 @@ rule rseqc_readdup:
     priority: 1
     log:
         "logs/rseqc/rseqc_readdup/{sample}_{unit}.log",
+    benchmark:
+        "logs/rseqc/rseqc_readdup/{sample}_{unit}.bench.tsv",
     params:
         prefix=lambda w, output: output[0].replace(".DupRate_plot.pdf", ""),
     conda:
@@ -258,6 +276,8 @@ rule rseqc_readgc:
     priority: 1
     log:
         "logs/rseqc/rseqc_readgc/{sample}_{unit}.log",
+    benchmark:
+        "logs/rseqc/rseqc_readgc/{sample}_{unit}.bench.tsv",
     params:
         prefix=lambda w, output: output[0].replace(".GC_plot.pdf", ""),
     conda:
@@ -276,5 +296,7 @@ rule multiqc:
         "results/qc/multiqc_report.html",
     log:
         "logs/multiqc.log",
+    benchmark:
+        "logs/multiqc.bench.tsv",
     wrapper:
         "v3.5.3/bio/multiqc"
