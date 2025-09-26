@@ -1,15 +1,9 @@
-def get_align_inputs(wildcards):
-    files = dict(get_fq(wildcards))
-    files.update({
-        "index": "resources/star_genome",
-        "gtf": "resources/genome.gtf",
-    })
-    return files
-
-
 rule align:
     input:
-        lambda wildcards: get_align_inputs(wildcards),
+        fq1=lambda wildcards: get_fq(wildcards)["fq1"],
+        fq2=lambda wildcards: get_fq(wildcards).get("fq2", []),
+        index="resources/star_genome",
+        gtf="resources/genome.gtf",
     output:
         aln=star_bam_path("{sample}", "{unit}"),
         reads_per_gene=star_counts_path("{sample}", "{unit}"),
