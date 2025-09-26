@@ -19,7 +19,7 @@ rule cutadapt_pipe:
     log:
         "logs/pipe-fastqs/catadapt/{sample}_{unit}.{fq}.{ext}.log",
     benchmark:
-        "logs/benchmarks/cutadapt_pipe/{sample}_{unit}.{fq}.{ext}.bench.tsv",
+        "logs/pipe-fastqs/catadapt/{sample}_{unit}.{fq}.{ext}.bench.tsv",
     wildcard_constraints:
         ext=r"fastq|fastq\.gz",
     threads: 1  ## this does something special when running using pipe() output directives
@@ -37,7 +37,7 @@ rule cutadapt_pe:
     log:
         "logs/cutadapt/{sample}_{unit}.log",
     benchmark:
-        "logs/benchmarks/cutadapt_pe/{sample}_{unit}.bench.tsv",
+        "logs/cutadapt/{sample}_{unit}.pe.bench.tsv",
     params:
         extra=config["params"]["cutadapt-pe"],
         adapters=lambda w: str(units.loc[w.sample].loc[w.unit, "adapters"]),
@@ -55,7 +55,7 @@ rule cutadapt_se:
     log:
         "logs/cutadapt/{sample}_{unit}.log",
     benchmark:
-        "logs/benchmarks/cutadapt_se/{sample}_{unit}.bench.tsv",
+        "logs/cutadapt/{sample}_{unit}.se.bench.tsv",
     params:
         extra=config["params"]["cutadapt-se"],
         adapters=lambda w: str(units.loc[w.sample].loc[w.unit, "adapters"]),

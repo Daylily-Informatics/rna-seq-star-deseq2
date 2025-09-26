@@ -36,8 +36,20 @@ def get_final_output():
 
 validate(samples, schema="../schemas/samples.schema.yaml")
 
+#units = (
+#    pd.read_csv(config["units"], sep="\t", dtype={"sample_name": str, "unit_name": str})
+#    .set_index(["sample_name", "unit_name"], drop=False)
+#    .sort_index()
+#)
 units = (
-    pd.read_csv(config["units"], sep="\t", dtype={"sample_name": str, "unit_name": str})
+    pd.read_csv(
+        config["units"],
+        sep="\t",
+        dtype=str,               # ← all cols strings
+        keep_default_na=False,   # ← "" stays "", no NaN
+        na_filter=False,
+    )
+    .applymap(lambda x: x.strip() if isinstance(x, str) else x)
     .set_index(["sample_name", "unit_name"], drop=False)
     .sort_index()
 )
@@ -139,6 +151,29 @@ def get_fq(wildcards):
             return {"fq1": f"{u.fq1}"}
         else:
             return {"fq1": f"{u.fq1}", "fq2": f"{u.fq2}"}
+
+
+def get_fastqc_fastq(wildcards):
+    fastqs = get_fq(wildcards)
+    read_map = {"R1": "fq1", "R2": "fq2"}
+    try:
+        key = read_map[wildcards.read]
+    except KeyError:
+        raise ValueError(
+            "Invalid read value '{read}' for sample {sample} unit {unit}".format(
+                read=wildcards.read, sample=wildcards.sample, unit=wildcards.unit
+            )
+        )
+
+    fastq = fastqs.get(key)
+    if fastq is None:
+        raise ValueError(
+            "Read {read} not available for sample {sample} unit {unit}".format(
+                read=wildcards.read, sample=wildcards.sample, unit=wildcards.unit
+            )
+        )
+
+    return fastq
 
 
 def get_strandedness(units):

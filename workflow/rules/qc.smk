@@ -119,6 +119,102 @@ rule fastqc:
         "v3.5.3/bio/fastqc"
 
 
+FASTQC_WILDCARDS = []
+for unit in units.itertuples():
+    reads = ("R1", "R2") if is_paired_end(unit.sample_name) else ("R1",)
+    for read in reads:
+        FASTQC_WILDCARDS.append(
+            {"sample": unit.sample_name, "unit": unit.unit_name, "read": read}
+        )
+
+FASTQC_ZIP_OUTPUTS = [
+    "results/qc/fastqc/{sample}_{unit}_{read}_fastqc.zip".format(**entry)
+    for entry in FASTQC_WILDCARDS
+]
+
+
+def get_multiqc_inputs(wildcards):
+    inputs = list(FASTQC_ZIP_OUTPUTS)
+    inputs.extend(
+        expand(
+            "results/star/{unit.sample_name}_{unit.unit_name}/Aligned.sortedByCoord.out.bam",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionanno.junction.bed",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionsat.junctionSaturation_plot.pdf",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.infer_experiment.txt",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.stats.txt",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.inner_distance_freq.inner_distance.txt",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdistribution.txt",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdup.DupRate_plot.pdf",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readgc.GC_plot.pdf",
+            unit=units.itertuples(),
+        )
+    )
+    inputs.extend(
+        expand(
+            "logs/rseqc/rseqc_junction_annotation/{unit.sample_name}_{unit.unit_name}.log",
+            unit=units.itertuples(),
+        )
+    )
+    return inputs
+
+
+rule fastqc:
+    input:
+        fastq=get_fastqc_fastq,
+    output:
+        html="results/qc/fastqc/{sample}_{unit}_{read}_fastqc.html",
+        zip="results/qc/fastqc/{sample}_{unit}_{read}_fastqc.zip",
+    threads: 4
+    log:
+        "logs/fastqc/{sample}_{unit}_{read}.log",
+    benchmark:
+        "logs/fastqc/{sample}_{unit}_{read}.bench.tsv",
+    params:
+        extra="",
+    wrapper:
+        "v3.5.3/bio/fastqc"
+
+
 rule rseqc_gtf2bed:
     input:
         "resources/genome.gtf",
@@ -132,8 +228,15 @@ rule rseqc_gtf2bed:
         "logs/benchmarks/rseqc_gtf2bed.bench.tsv",
     conda:
         "../envs/gffutils.yaml"
-    script:
-        "../scripts/gtf2bed.py"
+    shell:
+        """
+        set -euo pipefail
+        python workflow/scripts/gtf2bed.py \
+            --input {input} \
+            --bed {output.bed} \
+            --db {output.db} \
+            > {log} 2>&1
+        """
 
 
 rule rseqc_junction_annotation:
@@ -146,7 +249,7 @@ rule rseqc_junction_annotation:
     log:
         "logs/rseqc/rseqc_junction_annotation/{sample}_{unit}.log",
     benchmark:
-        "logs/benchmarks/rseqc_junction_annotation/{sample}_{unit}.bench.tsv",
+        "logs/rseqc/rseqc_junction_annotation/{sample}_{unit}.bench.tsv"
     params:
         extra=r"-q 255",  # STAR uses 255 as a score for unique mappers
         prefix=lambda w, output: output[0].replace(".junction.bed", ""),
