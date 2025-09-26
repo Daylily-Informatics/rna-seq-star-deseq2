@@ -1,147 +1,121 @@
-# Snakemake workflow: rna-seq-star-deseq2 (using pcluster-slurm executor) `0.1.7`
+# Snakemake workflow: rna-seq-star-deseq2 on AWS ParallelCluster
 
-This is my adoption of the [original forked repo's rna seq start deseq2](https://snakemake.github.io/snakemake-workflow-catalog/?usage=snakemake-workflows%2Frna-seq-star-deseq2) worflow, but to use AWS Parallel Cluster, via the [pcluser slurm snakemake executor](https://github.com/Daylily-Informatics/snakemake-executor-plugin-pcluster-slurm-ref).
+This repository packages a production-oriented RNA-seq differential expression workflow that is tuned for Daylily Informatics' AWS ParallelCluster environments. It layers AWS-aware execution, caching, and reporting conventions on top of the familiar STAR ➜ feature counting ➜ DESeq2 analysis stack so teams can iterate on transcriptomics projects without reinventing infrastructure.
 
-This workflow performs a differential gene expression analysis with STAR and Deseq2.
+## What this repository provides
 
-# Prerequisites
-## Have an `AWS Parallel Cluster` ( using slurm as the scheduler ) Running.
+- **Turnkey Snakemake workflow** for paired-end RNA-seq, orchestrated by the `pcluster-slurm` Snakemake executor plugin to seamlessly submit jobs to AWS ParallelCluster Slurm schedulers.
+- **Reference and resource management helpers** that cache STAR indices, Singularity images, and Conda environments on shared FSx/NFS mounts for rapid re-use across projects.
+- **Quality control dashboards** generated with FastQC, MultiQC, and RSeQC, with example outputs captured under [`docs/results_tree.log`](docs/results_tree.log) for quick browsing of the report structure.
+- **Differential expression reporting** via DESeq2, producing count matrices and annotated contrasts suitable for downstream visualization or knowledge bases.
+- **Reproducible environment bootstrapping** with helper scripts (for example, `bin/install_miniconda`) and configuration templates that reduce the friction of onboarding new analysts to Daylily's RNA-seq stack.
 
-### _from scratch_ Use AWS Parallel Cluster (less reccomended)
-- [AWS PC](https://aws.amazon.com/hpc/parallelcluster/)
+### Example artifacts
 
-### _pre-configured_ Use `daylily-ephemeral-cluster` (reccomended)
+The `docs/` directory contains reference directory trees from a representative run:
 
-- Follow the setup instructions found here: [https://github.com/Daylily-Informatics/daylily-ephemeral-cluster](https://github.com/Daylily-Informatics/daylily-ephemeral-cluster).
+- [`docs/resources_tree.log`](docs/resources_tree.log) shows the curated genome resources bundle (FASTA, GTF, and STAR genome directory) expected by the workflow.
+- [`docs/results_tree.log`](docs/results_tree.log) enumerates the outputs produced during a small treated-vs-untreated comparison, including STAR alignment BAMs, read count tables, DESeq2 normalized counts, MA plots, and QC summaries.
 
+These examples illustrate the layout teams can rely on when integrating results with downstream analytics or long-term storage policies.
 
-## Conda
-- If you have installed daylily-ehpemeral-cluster, once you log into the headnode, conda should be activated.
-- If you roll your own, you'll need to install miniconda, and activate. And you may do so as follows: `bash bin/install_miniconda`, which should work on most linux'y systems.
+## Common use cases
 
-# Usage
+- **Rapid validation of new reference builds** by rebuilding STAR indices on the cluster and verifying the generated QC reports against expected metrics.
+- **Budget-aware large cohort processing** where the workflow's support for Slurm comments (e.g., `SMK_SLURM_COMMENT`) and job partition targeting simplifies cost tracking across Daylily's organizational projects.
+- **Iterative methods development** for Daylily scientists who need to test alternative quantification or normalization strategies while preserving a stable baseline pipeline for comparison.
 
-## Clone Repo (it includes sample data)
+## Prerequisites
+
+1. An active AWS ParallelCluster deployment with Slurm (either a self-managed cluster or the [daylily-ephemeral-cluster](https://github.com/Daylily-Informatics/daylily-ephemeral-cluster)).
+2. Conda or Miniconda available on the head node. The provided `bin/install_miniconda` script can be used if Conda is not already present.
+3. User access to shared FSx (or comparable) storage for caching environments, containers, and references.
+
+## Getting started
+
+Clone the repository (it includes small example data sets):
 
 ```bash
 git clone git@github.com:Daylily-Informatics/rna-seq-star-deseq2.git
 cd rna-seq-star-deseq2
 ```
 
-## Build The Snakemake (v9.11.4.1) Conda Env
-Install the Daylily-Informatics fork of Snakemake that bundles AWS ParallelCluster integration alongside the executor plugin dependencies.
+### Build the Snakemake environment (Snakemake v9.11.4.1)
+
+Install the Daylily Informatics fork of Snakemake that bundles AWS ParallelCluster integration alongside the executor plugin dependencies.
+
 ```bash
 conda create -n snakemake -c conda-forge tabulate yaml
 conda activate snakemake
 pip install git+https://github.com/Daylily-Informatics/snakemake-aws@v9.11.4.3
-
 pip install snakemake-executor-plugin-pcluster-slurm==0.0.31
 pip install snakedeploy
-
-
 conda activate srrda
-snakemake --version
-# 9.11.4.1
+snakemake --version  # 9.11.4.1
 ```
 
-### Run Test Data Workflow
-_you are advised to run the following in a tmux or screen session_
-
-
-#### Prepare Cache and TMPDIR
+### Prime caches (recommended for large-scale work)
 
 ```bash
 conda activate srrda
-
-# Set your cache dir for saving resources useful across other jobs, snakemake uses this when the `--cache` flag is set.
-
 mkdir -p /fsx/resources/environments/containers/ubuntu/rnaseq_cache/
 export SNAKEMAKE_OUTPUT_CACHE=/fsx/resources/environments/containers/ubuntu/rnaseq_cache/
 export TMPDIR=/fsx/scratch/
 ```
 
-#### Prepare `units.tsv`
+Prepare run descriptors:
 
 ```bash
 cp config/units.tsv.template config/units.tsv
 [[ "$(uname)" == "Darwin" ]] && sed -i "" "s|REGSUB_PWD|$PWD|g" config/units.tsv || sed -i "s|REGSUB_PWD|$PWD|g" config/units.tsv
 ```
 
-#### Build Conda Env Caches 
-_this can take ~1hr_
+Build Conda environments ahead of time to minimize surprises during production submissions (can take ~1 hour):
 
 ```bash
-# I set partitions relevant to my AWS parallel cluster, but if you specify nothing, you will get an error along the lines of <could not find appropriate nodes>.
-
-snakemake --use-conda --use-singularity   \
---singularity-prefix /fsx/resources/environments/containers/ubuntu/ \
---singularity-args "  -B /tmp:/tmp -B /fsx:/fsx  -B /home/$USER:/home/$USER -B $PWD/:$PWD" \
---conda-prefix /fsx/resources/environments/containers/ubuntu/ \
---executor pcluster-slurm \
---default-resources slurm_partition=i192,i128 runtime=86400 mem_mb=36900 tmpdir=/fsx/scratch \
---cache -p \
- -k \
---max-threads 20000 \
---restart-times 2 \
---cores 20000 -j 14 -n   \
---conda-create-envs-only
-
+snakemake --use-conda --use-singularity \
+  --singularity-prefix /fsx/resources/environments/containers/ubuntu/ \
+  --singularity-args "-B /tmp:/tmp -B /fsx:/fsx -B /home/$USER:/home/$USER -B $PWD/:$PWD" \
+  --conda-prefix /fsx/resources/environments/containers/ubuntu/ \
+  --executor pcluster-slurm \
+  --default-resources slurm_partition=i192,i128 runtime=86400 mem_mb=36900 tmpdir=/fsx/scratch \
+  --cache -p \
+  -k \
+  --max-threads 20000 \
+  --restart-times 2 \
+  --cores 20000 -j 14 -n \
+  --conda-create-envs-only
 ```
 
-- there seems to be a bug which requires you to run with  `--conda-create-envs-only` first, then once all envs are built, run the command.
-- another bug with how snakemake detects max allowd threads per job limits the threads to the `nproc` of your head node.  Setting `--max-threads 20000 --cores 20000` gets around this crudely.
+> Note: Run once with `--conda-create-envs-only` to populate environments, then rerun without `-n` to execute the workflow. Setting `--max-threads` and `--cores` above your head-node CPU count works around Slurm thread detection quirks on AWS ParallelCluster.
 
-#### Prepare To Run The Command
+### Submit the pipeline
 
-- Remove the `-n` flag, and run not in dryrun mode.
-- `-j` sets the max jobs slurm will allow active at one time.
-- Watch your running nodes/jobs using `squeue` (also, `q` cluster commands work, but not reliably and are not supported).
-
-##### What Partitions Are Available?
-Use `sinfo` to learn about your cluster (note, `sinfo` reports on all potential and active compute nodes. Read the docs to interpret which are active, which are not yet requested spot instances, etc). Below is what the [daylily AWS parallel cluster](https://github.com/Daylily-Informatics/daylily/blob/main/config/day_cluster/prod_cluster.yaml) looks like.
+Update `config/units.tsv`, `config/samples.tsv`, and `config/config.yaml` with your project-specific metadata. Then launch the workflow:
 
 ```bash
-sinfo
-PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
-i8*          up   infinite     12  idle~ i8-dy-gb64-[1-12]
-i64          up   infinite     16  idle~ i64-dy-gb256-[1-8],i64-dy-gb512-[1-8]
-i128         up   infinite     28  idle~ i128-dy-gb256-[1-8],i128-dy-gb512-[1-10],i128-dy-gb1024-[1-10]
-i192         up   infinite     30  idle~ i192-dy-gb384-[1-10],i192-dy-gb768-[1-10],i192-dy-gb1536-[1-10]
+snakemake --use-conda --use-singularity \
+  --singularity-prefix /fsx/resources/environments/containers/ubuntu/ \
+  --singularity-args "-B /tmp:/tmp -B /fsx:/fsx -B /home/$USER:/home/$USER -B $PWD/:$PWD" \
+  --conda-prefix /fsx/resources/environments/containers/ubuntu/ \
+  --executor pcluster-slurm \
+  --default-resources slurm_partition=i192,i128 runtime=86400 mem_mb=36900 tmpdir=/fsx/scratch \
+  --cache -p \
+  -k \
+  --restart-times 2 \
+  --max-threads 20000 \
+  --cores 20000 -j 14 \
+  --include-aws-benchmark-metrics
 ```
 
-- Use the strings in `PARTITION`, ie: `i192` in the `slurm_partition=` config passed to snakemake.
+Monitor job states with `watch squeue` and adjust partitions (`slurm_partition=...`) to match the compute queues defined for your cluster.
 
-##### Budgets, and the `--comment` sbatch flag
-`daylily` makes extensive use of  [Cost allocation tags with AWS ParallelCluster](https://github.com/Daylily-Informatics/aws-parallelcluster-cost-allocation-tags) in the [daylily omics analysis framework](https://github.com/Daylily-Informatics/daylily?tab=readme-ov-file#daylily-aws-ephemeral-cluster-setup-0714) [_$3 30x WGS analysis_](https://github.com/Daylily-Informatics/daylily?tab=readme-ov-file#3-30x-fastq-bam-bamdeduplicated-snvvcfsvvcf-add-035-for-a-raft-of-qc-reports)  to track AWS cluster usage costs in realtime, and impose limits where appropriate (by user and project). This makes use of overriding the `--comment` flag to hold `project/budget` tags applied to ephemeral AWS resources, and thus enabling cost tracking/controls.
+## Running with your data
 
-* To change the --comment flag in v`0.0.8` of the pcluster-slurm plugin, set the comment flag value in the envvar `SMK_SLURM_COMMENT=RandD` (RandD is the default).
+1. Place sample FASTQ paths and associated metadata in `config/units.tsv` and `config/samples.tsv`.
+2. Review `config/config.yaml` for alignment, quantification, and contrast options.
+3. Perform a dry run with `-n` to validate DAG construction and resource requests before launching full scale analyses.
 
-##### Run The Command
+## Divergence notice
 
-```bash
-
-snakemake --use-conda --use-singularity   \
---singularity-prefix /fsx/resources/environments/containers/ubuntu/ \
---singularity-args "  -B /tmp:/tmp -B /fsx:/fsx  -B /home/$USER:/home/$USER -B $PWD/:$PWD" \
---conda-prefix /fsx/resources/environments/containers/ubuntu/ \
---executor pcluster-slurm \
---default-resources slurm_partition=i192,i128 runtime=86400 mem_mb=36900 tmpdir=/fsx/scratch \
---cache -p \
--k \
---restart-times 2 \
---max-threads 20000 \
---cores 20000 -j 14 \
---include-aws-benchmark-metrics
-
-```
-
- - You can watch progress with `watch squeue`.
-
-#### Run w/Your Data
-
-- Update the `config/units.tsv` (holds sample data location and other details) and `config/samples.tsv` (holds sample annotations).
-- Edit `config/config.yaml` to change aspects of the pipeline.
-- Run the `snakemake` command above *with* `-n`, tweak `-j` as needed, and if all looks good, run w/out `-n`.
- 
- 
-c 
+This repository has evolved beyond the original public RNA-seq workflow. Previous references to that project have been removed to reduce confusion; the documentation above reflects the Daylily-specific tooling now maintained here.
