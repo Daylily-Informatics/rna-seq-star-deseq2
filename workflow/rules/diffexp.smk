@@ -89,9 +89,9 @@ rule count_matrix:
     output:
         "results/counts/all.tsv"
     log:
-        "logs/count-matrix.log"
+        "logs/count-matrix.log",
     benchmark:
-        "logs/count-matrix.bench.tsv"
+        "logs/benchmarks/count_matrix.bench.tsv",
     params:
         samples = ",".join(units["sample_name"].tolist()),
         strands = lambda wildcards, input: ",".join(
@@ -122,7 +122,7 @@ rule gene_2_symbol:
     log:
         "logs/gene2symbol/{prefix}.log",
     benchmark:
-        "logs/gene2symbol/{prefix}.bench.tsv",
+        "logs/benchmarks/gene_2_symbol/{prefix}.bench.tsv",
     conda:
         "../envs/biomart.yaml"
     shell:
@@ -155,7 +155,7 @@ rule deseq2_init:
     log:
         "logs/deseq2/init.log",
     benchmark:
-        "logs/deseq2/init.bench.tsv",
+        "logs/benchmarks/deseq2_init.bench.tsv",
     threads: get_deseq2_threads()
     shell:
         """
@@ -176,7 +176,7 @@ rule pca:
     log:
         "logs/pca.{variable}.log",
     benchmark:
-        "logs/pca.{variable}.bench.tsv",
+        "logs/benchmarks/pca/{variable}.bench.tsv",
     shell:
         "touch {output}"
 
@@ -194,7 +194,7 @@ rule deseq2:
     log:
         "logs/deseq2/{contrast}.diffexp.log",
     benchmark:
-        "logs/deseq2/{contrast}.diffexp.bench.tsv",
+        "logs/benchmarks/deseq2/{contrast}.bench.tsv",
     threads: get_deseq2_threads()
     shell:
         "touch {output}"

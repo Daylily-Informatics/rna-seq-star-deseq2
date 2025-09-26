@@ -28,17 +28,20 @@ git clone git@github.com:Daylily-Informatics/rna-seq-star-deseq2.git
 cd rna-seq-star-deseq2
 ```
 
-## Build The Snakemake (v8.*) Conda Env
+## Build The Snakemake (v9.11.4.1) Conda Env
+Install the Daylily-Informatics fork of Snakemake that bundles AWS ParallelCluster integration alongside the executor plugin dependencies.
 ```bash
 conda create -n snakemake -c conda-forge tabulate yaml
 conda activate snakemake
 pip install git+https://github.com/Daylily-Informatics/snakemake-aws@v9.11.4.3
+
 pip install snakemake-executor-plugin-pcluster-slurm==0.0.31
 pip install snakedeploy
 
-conda activate snakemake
+
+conda activate srrda
 snakemake --version
-# 9.5.1 
+# 9.11.4.1
 ```
 
 ### Run Test Data Workflow
@@ -48,11 +51,11 @@ _you are advised to run the following in a tmux or screen session_
 #### Prepare Cache and TMPDIR
 
 ```bash
-conda activate snakemake
+conda activate srrda
 
 # Set your cache dir for saving resources useful across other jobs, snakemake uses this when the `--cache` flag is set.
 
-mkdir /fsx/resources/environments/containers/ubuntu/rnaseq_cache/
+mkdir -p /fsx/resources/environments/containers/ubuntu/rnaseq_cache/
 export SNAKEMAKE_OUTPUT_CACHE=/fsx/resources/environments/containers/ubuntu/rnaseq_cache/
 export TMPDIR=/fsx/scratch/
 ```
@@ -124,7 +127,7 @@ snakemake --use-conda --use-singularity   \
 --executor pcluster-slurm \
 --default-resources slurm_partition=i192,i128 runtime=86400 mem_mb=36900 tmpdir=/fsx/scratch \
 --cache -p \
- -k \
+-k \
 --restart-times 2 \
 --max-threads 20000 \
 --cores 20000 -j 14 \

@@ -6,7 +6,7 @@ rule get_sra:
     log:
         "logs/get-sra/{accession}.log",
     benchmark:
-        "logs/get-sra/{accession}.bench.tsv",
+        "logs/benchmarks/get_sra/{accession}.bench.tsv",
     wrapper:
         "v3.5.3/bio/sra-tools/fasterq-dump"
 
