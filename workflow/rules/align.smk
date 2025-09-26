@@ -11,8 +11,8 @@ rule align:
     input:
         lambda wildcards: get_align_inputs(wildcards),
     output:
-        aln=lambda wc: star_bam_path(wc.sample, wc.unit),
-        reads_per_gene=lambda wc: star_counts_path(wc.sample, wc.unit),
+        aln=star_bam_path("{sample}", "{unit}"),
+        reads_per_gene=star_counts_path("{sample}", "{unit}"),
     log:
         "logs/star/{sample}_{unit}.log",
     benchmark:
