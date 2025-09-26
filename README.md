@@ -32,7 +32,7 @@ cd rna-seq-star-deseq2
 ```bash
 conda create -n snakemake -c conda-forge tabulate yaml
 conda activate snakemake
-pip install pip install git+https://github.com/Daylily-Informatics/snakemake-aws@v9.11.4.3
+pip install git+https://github.com/Daylily-Informatics/snakemake-aws@v9.11.4.3
 pip install snakemake-executor-plugin-pcluster-slurm==0.0.31
 pip install snakedeploy
 
