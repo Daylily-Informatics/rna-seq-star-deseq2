@@ -4,8 +4,8 @@ rule align:
         index="resources/star_genome",
         gtf="resources/genome.gtf",
     output:
-        aln="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
-        reads_per_gene="results/star/{sample}_{unit}/ReadsPerGene.out.tab",
+        aln=lambda wc: star_bam_path(wc.sample, wc.unit),
+        reads_per_gene=lambda wc: star_counts_path(wc.sample, wc.unit),
     log:
         "logs/star/{sample}_{unit}.log",
     benchmark:

@@ -9,7 +9,7 @@ for unit in units.itertuples():
         )
 
 FASTQC_ZIP_OUTPUTS = [
-    "results/qc/fastqc/{sample}_{unit}_{read}_fastqc.zip".format(**entry)
+    fastqc_output_path(entry["sample"], entry["unit"], entry["read"], "zip")
     for entry in FASTQC_WILDCARDS
 ]
 
@@ -37,68 +37,31 @@ def get_fastqc_fastq(wildcards):
 
 def get_multiqc_inputs(wildcards):
     inputs = list(FASTQC_ZIP_OUTPUTS)
-    inputs.extend(
-        expand(
-            "results/star/{unit.sample_name}_{unit.unit_name}/Aligned.sortedByCoord.out.bam",
-            unit=units.itertuples(),
+    for unit in units.itertuples():
+        sample = unit.sample_name
+        unit_name = unit.unit_name
+        inputs.append(star_bam_path(sample, unit_name))
+        inputs.append(rseqc_output_path(sample, unit_name, "junctionanno.junction.bed"))
+        inputs.append(
+            rseqc_output_path(
+                sample, unit_name, "junctionsat.junctionSaturation_plot.pdf"
+            )
         )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionanno.junction.bed",
-            unit=units.itertuples(),
+        inputs.append(rseqc_output_path(sample, unit_name, "infer_experiment.txt"))
+        inputs.append(rseqc_output_path(sample, unit_name, "stats.txt"))
+        inputs.append(
+            rseqc_output_path(
+                sample, unit_name, "inner_distance_freq.inner_distance.txt"
+            )
         )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionsat.junctionSaturation_plot.pdf",
-            unit=units.itertuples(),
+        inputs.append(rseqc_output_path(sample, unit_name, "readdistribution.txt"))
+        inputs.append(
+            rseqc_output_path(sample, unit_name, "readdup.DupRate_plot.pdf")
         )
-    )
-    inputs.extend(
-
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.infer_experiment.txt",
-            unit=units.itertuples(),
+        inputs.append(rseqc_output_path(sample, unit_name, "readgc.GC_plot.pdf"))
+        inputs.append(
+            f"logs/rseqc/rseqc_junction_annotation/{sample}_{unit_name}.log"
         )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.stats.txt",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.inner_distance_freq.inner_distance.txt",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdistribution.txt",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdup.DupRate_plot.pdf",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readgc.GC_plot.pdf",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "logs/rseqc/rseqc_junction_annotation/{unit.sample_name}_{unit.unit_name}.log",
-            unit=units.itertuples(),
-        )
-    )
     return inputs
 
 
@@ -106,8 +69,8 @@ rule fastqc:
     input:
         fastq=get_fastqc_fastq,
     output:
-        html="results/qc/fastqc/{sample}_{unit}_{read}_fastqc.html",
-        zip="results/qc/fastqc/{sample}_{unit}_{read}_fastqc.zip",
+        html=lambda wc: fastqc_output_path(wc.sample, wc.unit, wc.read, "html"),
+        zip=lambda wc: fastqc_output_path(wc.sample, wc.unit, wc.read, "zip"),
     threads: 4
     log:
         "logs/fastqc/{sample}_{unit}_{read}.log",
@@ -119,91 +82,12 @@ rule fastqc:
         "v3.5.3/bio/fastqc"
 
 
-FASTQC_WILDCARDS = []
-for unit in units.itertuples():
-    reads = ("R1", "R2") if is_paired_end(unit.sample_name) else ("R1",)
-    for read in reads:
-        FASTQC_WILDCARDS.append(
-            {"sample": unit.sample_name, "unit": unit.unit_name, "read": read}
-        )
-
-FASTQC_ZIP_OUTPUTS = [
-    "results/qc/fastqc/{sample}_{unit}_{read}_fastqc.zip".format(**entry)
-    for entry in FASTQC_WILDCARDS
-]
-
-
-def get_multiqc_inputs(wildcards):
-    inputs = list(FASTQC_ZIP_OUTPUTS)
-    inputs.extend(
-        expand(
-            "results/star/{unit.sample_name}_{unit.unit_name}/Aligned.sortedByCoord.out.bam",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionanno.junction.bed",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.junctionsat.junctionSaturation_plot.pdf",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.infer_experiment.txt",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.stats.txt",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.inner_distance_freq.inner_distance.txt",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdistribution.txt",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readdup.DupRate_plot.pdf",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.readgc.GC_plot.pdf",
-            unit=units.itertuples(),
-        )
-    )
-    inputs.extend(
-        expand(
-            "logs/rseqc/rseqc_junction_annotation/{unit.sample_name}_{unit.unit_name}.log",
-            unit=units.itertuples(),
-        )
-    )
-    return inputs
-
-
 rule rseqc_gtf2bed:
     input:
         "resources/genome.gtf",
     output:
-        bed="results/qc/rseqc/annotation.bed",
-        db=temp("results/qc/rseqc/annotation.db"),
+        bed=cohort_path("qc", "rseqc", "annotation.bed"),
+        db=temp(cohort_path("qc", "rseqc", "annotation.db")),
     threads: 32
     log:
         "logs/rseqc_gtf2bed.log",
@@ -224,10 +108,12 @@ rule rseqc_gtf2bed:
 
 rule rseqc_junction_annotation:
     input:
-        bam="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
-        bed="results/qc/rseqc/annotation.bed",
+        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bed=cohort_path("qc", "rseqc", "annotation.bed"),
     output:
-        "results/qc/rseqc/{sample}_{unit}.junctionanno.junction.bed",
+        bed=lambda wc: rseqc_output_path(
+            wc.sample, wc.unit, "junctionanno.junction.bed"
+        ),
     priority: 1
     log:
         "logs/rseqc/rseqc_junction_annotation/{sample}_{unit}.log",
@@ -235,22 +121,24 @@ rule rseqc_junction_annotation:
         "logs/rseqc/rseqc_junction_annotation/{sample}_{unit}.bench.tsv"
     params:
         extra=r"-q 255",  # STAR uses 255 as a score for unique mappers
-        prefix=lambda w, output: output[0].replace(".junction.bed", ""),
+        prefix=lambda w, output: output.bed.replace(".junction.bed", ""),
     threads: 32
     conda:
         "../envs/rseqc.yaml"
     shell:
         """
-        junction_annotation.py {params.extra} -i {input.bam} -r {input.bed} -o {params.prefix} > {log[0]} 2>&1;
+        junction_annotation.py {params.extra} -i {input.bam} -r {input.bed} -o {params.prefix} > {log} 2>&1;
         """
 
 
 rule rseqc_junction_saturation:
     input:
-        bam="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
-        bed="results/qc/rseqc/annotation.bed",
+        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bed=cohort_path("qc", "rseqc", "annotation.bed"),
     output:
-        "results/qc/rseqc/{sample}_{unit}.junctionsat.junctionSaturation_plot.pdf",
+        pdf=lambda wc: rseqc_output_path(
+            wc.sample, wc.unit, "junctionsat.junctionSaturation_plot.pdf"
+        ),
     priority: 1
     threads: 32
     log:
@@ -259,7 +147,7 @@ rule rseqc_junction_saturation:
         "logs/benchmarks/rseqc_junction_saturation/{sample}_{unit}.bench.tsv",
     params:
         extra=r"-q 255",
-        prefix=lambda w, output: output[0].replace(".junctionSaturation_plot.pdf", ""),
+        prefix=lambda w, output: output.pdf.replace(".junctionSaturation_plot.pdf", ""),
     conda:
         "../envs/rseqc.yaml"
     shell:
@@ -269,9 +157,9 @@ rule rseqc_junction_saturation:
 
 rule rseqc_stat:
     input:
-        "results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
+        lambda wc: star_bam_path(wc.sample, wc.unit),
     output:
-        "results/qc/rseqc/{sample}_{unit}.stats.txt",
+        stats=lambda wc: rseqc_output_path(wc.sample, wc.unit, "stats.txt"),
     priority: 1
     log:
         "logs/rseqc/rseqc_stat/{sample}_{unit}.log",
@@ -282,16 +170,16 @@ rule rseqc_stat:
         "../envs/rseqc.yaml"
     shell:
         """
-        bam_stat.py -i {input} > {output} 2> {log};
+        bam_stat.py -i {input} > {output.stats} 2> {log};
         """
 
 
 rule rseqc_infer:
     input:
-        bam="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
-        bed="results/qc/rseqc/annotation.bed",
+        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bed=cohort_path("qc", "rseqc", "annotation.bed"),
     output:
-        "results/qc/rseqc/{sample}_{unit}.infer_experiment.txt",
+        txt=lambda wc: rseqc_output_path(wc.sample, wc.unit, "infer_experiment.txt"),
     priority: 1
     log:
         "logs/rseqc/rseqc_infer/{sample}_{unit}.log",
@@ -302,23 +190,25 @@ rule rseqc_infer:
         "../envs/rseqc.yaml"
     shell:
         """
-        infer_experiment.py -r {input.bed} -i {input.bam} > {output} 2> {log};
+        infer_experiment.py -r {input.bed} -i {input.bam} > {output.txt} 2> {log};
         """
 
 
 rule rseqc_innerdis:
     input:
-        bam="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
-        bed="results/qc/rseqc/annotation.bed",
+        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bed=cohort_path("qc", "rseqc", "annotation.bed"),
     output:
-        "results/qc/rseqc/{sample}_{unit}.inner_distance_freq.inner_distance.txt",
+        txt=lambda wc: rseqc_output_path(
+            wc.sample, wc.unit, "inner_distance_freq.inner_distance.txt"
+        ),
     priority: 1
     log:
         "logs/rseqc/rseqc_innerdis/{sample}_{unit}.log",
     benchmark:
         "logs/benchmarks/rseqc_innerdis/{sample}_{unit}.bench.tsv",
     params:
-        prefix=lambda w, output: output[0].replace(".inner_distance.txt", ""),
+        prefix=lambda w, output: output.txt.replace(".inner_distance.txt", ""),
     threads: 32
     conda:
         "../envs/rseqc.yaml"
@@ -330,11 +220,11 @@ rule rseqc_innerdis:
 
 rule rseqc_readdis:
     input:
-        bam="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
-        bed="results/qc/rseqc/annotation.bed",
+        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bed=cohort_path("qc", "rseqc", "annotation.bed"),
     threads: 32
     output:
-        "results/qc/rseqc/{sample}_{unit}.readdistribution.txt",
+        txt=lambda wc: rseqc_output_path(wc.sample, wc.unit, "readdistribution.txt"),
     priority: 1
     log:
         "logs/rseqc/rseqc_readdis/{sample}_{unit}.log",
@@ -344,15 +234,15 @@ rule rseqc_readdis:
         "../envs/rseqc.yaml"
     shell:
         """
-        read_distribution.py -r {input.bed} -i {input.bam} > {output} 2> {log};
+        read_distribution.py -r {input.bed} -i {input.bam} > {output.txt} 2> {log};
         """
 
 
 rule rseqc_readdup:
     input:
-        "results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
+        lambda wc: star_bam_path(wc.sample, wc.unit),
     output:
-        "results/qc/rseqc/{sample}_{unit}.readdup.DupRate_plot.pdf",
+        pdf=lambda wc: rseqc_output_path(wc.sample, wc.unit, "readdup.DupRate_plot.pdf"),
     threads: 32
     priority: 1
     log:
@@ -360,7 +250,7 @@ rule rseqc_readdup:
     benchmark:
         "logs/benchmarks/rseqc_readdup/{sample}_{unit}.bench.tsv",
     params:
-        prefix=lambda w, output: output[0].replace(".DupRate_plot.pdf", ""),
+        prefix=lambda w, output: output.pdf.replace(".DupRate_plot.pdf", ""),
     conda:
         "../envs/rseqc.yaml"
     shell:
@@ -370,9 +260,9 @@ rule rseqc_readdup:
 
 rule rseqc_readgc:
     input:
-        "results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
+        lambda wc: star_bam_path(wc.sample, wc.unit),
     output:
-        "results/qc/rseqc/{sample}_{unit}.readgc.GC_plot.pdf",
+        pdf=lambda wc: rseqc_output_path(wc.sample, wc.unit, "readgc.GC_plot.pdf"),
     threads: 32
     priority: 1
     log:
@@ -380,7 +270,7 @@ rule rseqc_readgc:
     benchmark:
         "logs/benchmarks/rseqc_readgc/{sample}_{unit}.bench.tsv",
     params:
-        prefix=lambda w, output: output[0].replace(".GC_plot.pdf", ""),
+        prefix=lambda w, output: output.pdf.replace(".GC_plot.pdf", ""),
     conda:
         "../envs/rseqc.yaml"
     shell:
@@ -393,7 +283,7 @@ rule multiqc:
         get_multiqc_inputs,
     threads: 32
     output:
-        "results/qc/multiqc_report.html",
+        html=cohort_path("reports", "multiqc", "multiqc_report.html"),
     log:
         "logs/multiqc.log",
     benchmark:
@@ -402,8 +292,11 @@ rule multiqc:
         "docker://daylilyinformatics/daylily_multiqc:0.2"
     shell:
         """
+        outdir={output.html.rpartition('/')[0]}; \
+        mkdir -p "$outdir"; \
         multiqc -f \
          --template default \
-        --filename {output[0]} \
-        -i 'deseq2 RNASEQ QC' ./results >> {log} 2>&1;
+        --filename {output.html.rpartition('/')[-1]} \
+        --outdir "$outdir" \
+        -i 'deseq2 RNASEQ QC' {ANALYSIS_ROOT} >> {log} 2>&1;
         """
