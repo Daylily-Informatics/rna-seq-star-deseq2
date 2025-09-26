@@ -13,7 +13,7 @@ rule get_sra:
 
 rule cutadapt_pipe:
     input:
-        get_cutadapt_pipe_input,
+        lambda wildcards: get_cutadapt_pipe_input(wildcards),
     output:
         pipe("pipe/cutadapt/{sample}/{unit}.{fq}.{ext}"),
     log:
@@ -29,7 +29,7 @@ rule cutadapt_pipe:
 
 rule cutadapt_pe:
     input:
-        get_cutadapt_input,
+        lambda wildcards: get_cutadapt_input(wildcards),
     output:
         fastq1=trimmed_fastq_path("{sample}", "{unit}", "fq1"),
         fastq2=trimmed_fastq_path("{sample}", "{unit}", "fq2"),
@@ -48,7 +48,7 @@ rule cutadapt_pe:
 
 rule cutadapt_se:
     input:
-        get_cutadapt_input,
+        lambda wildcards: get_cutadapt_input(wildcards),
     output:
         fastq=trimmed_fastq_path("{sample}", "{unit}", "single"),
         qc=trimmed_qc_path("{sample}", "{unit}", "single.qc.txt"),

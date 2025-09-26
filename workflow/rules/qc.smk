@@ -35,7 +35,7 @@ def get_fastqc_fastq(wildcards):
 
     return fastq
 
-def get_multiqc_inputs(wildcards):
+def get_multiqc_inputs(_wildcards=None):
     inputs = list(FASTQC_ZIP_OUTPUTS)
     for unit in units.itertuples():
         sample = unit.sample_name
@@ -67,7 +67,7 @@ def get_multiqc_inputs(wildcards):
 
 rule fastqc:
     input:
-        fastq=get_fastqc_fastq,
+        fastq=lambda wildcards: get_fastqc_fastq(wildcards),
     output:
         html=lambda wc: fastqc_output_path(wc.sample, wc.unit, wc.read, "html"),
         zip=lambda wc: fastqc_output_path(wc.sample, wc.unit, wc.read, "zip"),
@@ -280,7 +280,7 @@ rule rseqc_readgc:
 
 rule multiqc:
     input:
-        get_multiqc_inputs,
+        lambda wildcards: get_multiqc_inputs(wildcards),
     threads: 32
     output:
         html=cohort_path("reports", "multiqc", "multiqc_report.html"),
