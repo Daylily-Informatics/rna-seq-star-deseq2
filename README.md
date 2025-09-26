@@ -15,7 +15,7 @@ This repository packages a production-oriented RNA-seq differential expression w
 The `docs/` directory contains reference directory trees from a representative run:
 
 - [`docs/resources_tree.log`](docs/resources_tree.log) shows the curated genome resources bundle (FASTA, GTF, and STAR genome directory) expected by the workflow.
-- [`docs/results_tree.log`](docs/results_tree.log) enumerates the outputs produced during a small treated-vs-untreated comparison, including STAR alignment BAMs, read count tables, DESeq2 normalized counts, MA plots, and QC summaries.
+- [`docs/results_tree.log`](docs/results_tree.log) enumerates the outputs produced during a small treated-vs-untreated comparison, including STAR alignment BAMs, read count tables, DESeq2 normalized counts, MA plots, and QC summaries. The workflow now mirrors the Daylily Omics Analysis conventions by placing sample-level assets under `results/rna/<build>/<sample>/...` and aggregated cohort deliverables under `results/rna/<build>/cohort/...` so that projects can be interleaved with other Daylily analysis runs without renaming.
 
 These examples illustrate the layout teams can rely on when integrating results with downstream analytics or long-term storage policies.
 

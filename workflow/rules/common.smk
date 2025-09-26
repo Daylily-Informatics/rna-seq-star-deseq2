@@ -1,4 +1,5 @@
 import glob
+import re
 
 import pandas as pd
 from snakemake.utils import validate
@@ -12,24 +13,69 @@ samples = (
 )
 
 
+def _slugify_build(build: str) -> str:
+    slug = re.sub(r"[^0-9a-zA-Z]+", "", str(build)).lower()
+    return slug or "build"
+
+
+GENOME_BUILD_SLUG = _slugify_build(config["ref"].get("build", ""))
+ANALYSIS_ROOT = f"results/rna/{GENOME_BUILD_SLUG}"
+
+
+def sample_path(sample: str, *parts: str) -> str:
+    return "/".join([ANALYSIS_ROOT, sample, *parts])
+
+
+def cohort_path(*parts: str) -> str:
+    return "/".join([ANALYSIS_ROOT, "cohort", *parts])
+
+
+def trimmed_fastq_path(sample: str, unit: str, read: str) -> str:
+    labels = {"fq1": "R1", "fq2": "R2", "single": "single"}
+    if read not in labels:
+        raise ValueError(f"Unsupported read label '{read}' for trimmed fastq path")
+    return sample_path(sample, "fastq", "trimmed", f"{sample}.{unit}.trimmed.{labels[read]}.fastq.gz")
+
+
+def trimmed_qc_path(sample: str, unit: str, suffix: str) -> str:
+    return sample_path(sample, "fastq", "trimmed", f"{sample}.{unit}.trimmed.{suffix}")
+
+
+def star_bam_path(sample: str, unit: str) -> str:
+    return sample_path(sample, "align", "star", f"{sample}.{unit}.star.sortedByCoord.bam")
+
+
+def star_counts_path(sample: str, unit: str) -> str:
+    return sample_path(sample, "align", "star", f"{sample}.{unit}.star.ReadsPerGene.out.tab")
+
+
+def fastqc_output_path(sample: str, unit: str, read: str, ext: str) -> str:
+    return sample_path(sample, "qc", "fastqc", f"{sample}.{unit}.{read}.fastqc.{ext}")
+
+
+def rseqc_output_path(sample: str, unit: str, suffix: str) -> str:
+    return sample_path(sample, "qc", "rseqc", f"{sample}.{unit}.{suffix}")
+
+
 def get_final_output():
     final_output = expand(
-        "results/diffexp/{contrast}.diffexp.symbol.tsv",
+        cohort_path("deseq2", "diffexp", "{contrast}.diffexp.symbol.tsv"),
         contrast=config["diffexp"]["contrasts"],
     )
-    #final_output.append("results/deseq2/normcounts.symbol.tsv")
-    final_output.append("results/counts/all.symbol.tsv")
-    final_output.append("results/qc/multiqc_report.html")
+    final_output.append(cohort_path("counts", "rnaseq.counts.symbol.tsv"))
+    final_output.append(cohort_path("reports", "multiqc", "multiqc_report.html"))
 
     if config["pca"]["activate"]:
-        # get all the variables to plot a PCA for
         pca_variables = list(config["diffexp"]["variables_of_interest"])
         if config["diffexp"]["batch_effects"]:
             pca_variables.extend(config["diffexp"]["batch_effects"])
         if config["pca"]["labels"]:
             pca_variables.extend(config["pca"]["labels"])
         final_output.extend(
-            expand("results/pca.{variable}.svg", variable=pca_variables)
+            expand(
+                cohort_path("deseq2", "pca", "{variable}.pca.svg"),
+                variable=pca_variables,
+            )
         )
     return final_output
 
@@ -120,16 +166,15 @@ def get_fq(wildcards):
             return dict(
                 zip(
                     ["fq1", "fq2"],
-                    expand(
-                        "results/trimmed/{sample}_{unit}_{group}.fastq.gz",
-                        group=["R1", "R2"],
-                        **wildcards,
-                    ),
+                    [
+                        trimmed_fastq_path(wildcards.sample, wildcards.unit, "fq1"),
+                        trimmed_fastq_path(wildcards.sample, wildcards.unit, "fq2"),
+                    ],
                 )
             )
         # single end sample
         return {
-            "fq1": "results/trimmed/{sample}_{unit}_single.fastq.gz".format(**wildcards)
+            "fq1": trimmed_fastq_path(wildcards.sample, wildcards.unit, "single")
         }
     else:
         # no trimming, use raw reads
@@ -201,25 +246,6 @@ def get_bioc_species_name():
     first_letter = config["ref"]["species"][0]
     subspecies = config["ref"]["species"].split("_")[1]
     return first_letter + subspecies
-
-
-def get_fastqs(wc):
-    if config["trimming"]["activate"]:
-        return expand(
-            "results/trimmed/{sample}/{unit}_{read}.fastq.gz",
-            unit=units.loc[wc.sample, "unit_name"],
-            sample=wc.sample,
-            read=wc.read,
-        )
-    unit = units.loc[wc.sample]
-    if all(pd.isna(unit["fq1"])):
-        # SRA sample (always paired-end for now)
-        accession = unit["sra"]
-        return expand(
-            "sra/{accession}_{read}.fastq", accession=accession, read=wc.read[-1]
-        )
-    fq = "fq{}".format(wc.read[-1])
-    return units.loc[wc.sample, fq].tolist()
 
 
 def get_contrast(wildcards):

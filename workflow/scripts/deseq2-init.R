@@ -1,12 +1,18 @@
 # Check if `snakemake` object exists, if not, define it manually
 if (!exists("snakemake")) {
+  build_slug <- tolower(gsub("[^0-9A-Za-z]+", "", "GRCh38"))
+  cohort_dir <- file.path("results", "rna", build_slug, "cohort")
   snakemake <- list(
-    input = list(counts = "results/counts/all.tsv"),
-    output = list("results/deseq2/all.rds", "results/deseq2/normcounts.tsv"),
+    input = list(counts = file.path(cohort_dir, "counts", "rnaseq.counts.tsv")),
+    output = list(
+      file.path(cohort_dir, "deseq2", "all.rds"),
+      file.path(cohort_dir, "deseq2", "normcounts.tsv")
+    ),
     log = list("logs/deseq2/init.log"),  # Correct the log definition
     threads = 1,  # Or set the number of threads you want to use
     config = list(
       samples = "path/to/samples.tsv",
+      ref = list(build = "GRCh38"),
       diffexp = list(
         variables_of_interest = list(
           "some_variable" = list(base_level = "some_level")

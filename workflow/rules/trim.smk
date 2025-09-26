@@ -31,9 +31,9 @@ rule cutadapt_pe:
     input:
         get_cutadapt_input,
     output:
-        fastq1="results/trimmed/{sample}_{unit}_R1.fastq.gz",
-        fastq2="results/trimmed/{sample}_{unit}_R2.fastq.gz",
-        qc="results/trimmed/{sample}_{unit}.paired.qc.txt",
+        fastq1=lambda wc: trimmed_fastq_path(wc.sample, wc.unit, "fq1"),
+        fastq2=lambda wc: trimmed_fastq_path(wc.sample, wc.unit, "fq2"),
+        qc=lambda wc: trimmed_qc_path(wc.sample, wc.unit, "paired.qc.txt"),
     log:
         "logs/cutadapt/{sample}_{unit}.log",
     benchmark:
@@ -50,8 +50,8 @@ rule cutadapt_se:
     input:
         get_cutadapt_input,
     output:
-        fastq="results/trimmed/{sample}_{unit}_single.fastq.gz",
-        qc="results/trimmed/{sample}_{unit}_single.qc.txt",
+        fastq=lambda wc: trimmed_fastq_path(wc.sample, wc.unit, "single"),
+        qc=lambda wc: trimmed_qc_path(wc.sample, wc.unit, "single.qc.txt"),
     log:
         "logs/cutadapt/{sample}_{unit}.log",
     benchmark:
