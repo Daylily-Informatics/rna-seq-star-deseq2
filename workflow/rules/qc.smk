@@ -69,8 +69,8 @@ rule fastqc:
     input:
         fastq=lambda wildcards: get_fastqc_fastq(wildcards),
     output:
-        html=lambda wc: fastqc_output_path(wc.sample, wc.unit, wc.read, "html"),
-        zip=lambda wc: fastqc_output_path(wc.sample, wc.unit, wc.read, "zip"),
+        html=fastqc_output_path("{sample}", "{unit}", "{read}", "html"),
+        zip=fastqc_output_path("{sample}", "{unit}", "{read}", "zip"),
     threads: 4
     log:
         "logs/fastqc/{sample}_{unit}_{read}.log",
@@ -108,12 +108,10 @@ rule rseqc_gtf2bed:
 
 rule rseqc_junction_annotation:
     input:
-        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bam=star_bam_path("{sample}", "{unit}"),
         bed=cohort_path("qc", "rseqc", "annotation.bed"),
     output:
-        bed=lambda wc: rseqc_output_path(
-            wc.sample, wc.unit, "junctionanno.junction.bed"
-        ),
+        bed=rseqc_output_path("{sample}", "{unit}", "junctionanno.junction.bed"),
     priority: 1
     log:
         "logs/rseqc/rseqc_junction_annotation/{sample}_{unit}.log",
@@ -121,7 +119,7 @@ rule rseqc_junction_annotation:
         "logs/rseqc/rseqc_junction_annotation/{sample}_{unit}.bench.tsv"
     params:
         extra=r"-q 255",  # STAR uses 255 as a score for unique mappers
-        prefix=lambda w, output: output.bed.replace(".junction.bed", ""),
+        prefix=rseqc_output_path("{sample}", "{unit}", "junctionanno.junction"),
     threads: 32
     conda:
         "../envs/rseqc.yaml"
@@ -133,11 +131,11 @@ rule rseqc_junction_annotation:
 
 rule rseqc_junction_saturation:
     input:
-        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bam=star_bam_path("{sample}", "{unit}"),
         bed=cohort_path("qc", "rseqc", "annotation.bed"),
     output:
-        pdf=lambda wc: rseqc_output_path(
-            wc.sample, wc.unit, "junctionsat.junctionSaturation_plot.pdf"
+        pdf=rseqc_output_path(
+            "{sample}", "{unit}", "junctionsat.junctionSaturation_plot.pdf"
         ),
     priority: 1
     threads: 32
@@ -147,7 +145,9 @@ rule rseqc_junction_saturation:
         "logs/benchmarks/rseqc_junction_saturation/{sample}_{unit}.bench.tsv",
     params:
         extra=r"-q 255",
-        prefix=lambda w, output: output.pdf.replace(".junctionSaturation_plot.pdf", ""),
+        prefix=rseqc_output_path(
+            "{sample}", "{unit}", "junctionsat.junctionSaturation_plot"
+        ),
     conda:
         "../envs/rseqc.yaml"
     shell:
@@ -157,9 +157,9 @@ rule rseqc_junction_saturation:
 
 rule rseqc_stat:
     input:
-        lambda wc: star_bam_path(wc.sample, wc.unit),
+        star_bam_path("{sample}", "{unit}"),
     output:
-        stats=lambda wc: rseqc_output_path(wc.sample, wc.unit, "stats.txt"),
+        stats=rseqc_output_path("{sample}", "{unit}", "stats.txt"),
     priority: 1
     log:
         "logs/rseqc/rseqc_stat/{sample}_{unit}.log",
@@ -176,10 +176,10 @@ rule rseqc_stat:
 
 rule rseqc_infer:
     input:
-        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bam=star_bam_path("{sample}", "{unit}"),
         bed=cohort_path("qc", "rseqc", "annotation.bed"),
     output:
-        txt=lambda wc: rseqc_output_path(wc.sample, wc.unit, "infer_experiment.txt"),
+        txt=rseqc_output_path("{sample}", "{unit}", "infer_experiment.txt"),
     priority: 1
     log:
         "logs/rseqc/rseqc_infer/{sample}_{unit}.log",
@@ -196,11 +196,11 @@ rule rseqc_infer:
 
 rule rseqc_innerdis:
     input:
-        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bam=star_bam_path("{sample}", "{unit}"),
         bed=cohort_path("qc", "rseqc", "annotation.bed"),
     output:
-        txt=lambda wc: rseqc_output_path(
-            wc.sample, wc.unit, "inner_distance_freq.inner_distance.txt"
+        txt=rseqc_output_path(
+            "{sample}", "{unit}", "inner_distance_freq.inner_distance.txt"
         ),
     priority: 1
     log:
@@ -208,7 +208,9 @@ rule rseqc_innerdis:
     benchmark:
         "logs/benchmarks/rseqc_innerdis/{sample}_{unit}.bench.tsv",
     params:
-        prefix=lambda w, output: output.txt.replace(".inner_distance.txt", ""),
+        prefix=rseqc_output_path(
+            "{sample}", "{unit}", "inner_distance_freq.inner_distance"
+        ),
     threads: 32
     conda:
         "../envs/rseqc.yaml"
@@ -220,11 +222,11 @@ rule rseqc_innerdis:
 
 rule rseqc_readdis:
     input:
-        bam=lambda wc: star_bam_path(wc.sample, wc.unit),
+        bam=star_bam_path("{sample}", "{unit}"),
         bed=cohort_path("qc", "rseqc", "annotation.bed"),
     threads: 32
     output:
-        txt=lambda wc: rseqc_output_path(wc.sample, wc.unit, "readdistribution.txt"),
+        txt=rseqc_output_path("{sample}", "{unit}", "readdistribution.txt"),
     priority: 1
     log:
         "logs/rseqc/rseqc_readdis/{sample}_{unit}.log",
@@ -240,9 +242,9 @@ rule rseqc_readdis:
 
 rule rseqc_readdup:
     input:
-        lambda wc: star_bam_path(wc.sample, wc.unit),
+        star_bam_path("{sample}", "{unit}"),
     output:
-        pdf=lambda wc: rseqc_output_path(wc.sample, wc.unit, "readdup.DupRate_plot.pdf"),
+        pdf=rseqc_output_path("{sample}", "{unit}", "readdup.DupRate_plot.pdf"),
     threads: 32
     priority: 1
     log:
@@ -250,7 +252,7 @@ rule rseqc_readdup:
     benchmark:
         "logs/benchmarks/rseqc_readdup/{sample}_{unit}.bench.tsv",
     params:
-        prefix=lambda w, output: output.pdf.replace(".DupRate_plot.pdf", ""),
+        prefix=rseqc_output_path("{sample}", "{unit}", "readdup.DupRate_plot"),
     conda:
         "../envs/rseqc.yaml"
     shell:
@@ -260,9 +262,9 @@ rule rseqc_readdup:
 
 rule rseqc_readgc:
     input:
-        lambda wc: star_bam_path(wc.sample, wc.unit),
+        star_bam_path("{sample}", "{unit}"),
     output:
-        pdf=lambda wc: rseqc_output_path(wc.sample, wc.unit, "readgc.GC_plot.pdf"),
+        pdf=rseqc_output_path("{sample}", "{unit}", "readgc.GC_plot.pdf"),
     threads: 32
     priority: 1
     log:
@@ -270,7 +272,7 @@ rule rseqc_readgc:
     benchmark:
         "logs/benchmarks/rseqc_readgc/{sample}_{unit}.bench.tsv",
     params:
-        prefix=lambda w, output: output.pdf.replace(".GC_plot.pdf", ""),
+        prefix=rseqc_output_path("{sample}", "{unit}", "readgc.GC_plot"),
     conda:
         "../envs/rseqc.yaml"
     shell:
