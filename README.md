@@ -3,7 +3,7 @@
 This repository packages a production-oriented RNA-seq differential expression workflow that is tuned for Daylily Informatics' AWS ParallelCluster environments. It layers AWS-aware execution, caching, and reporting conventions on top of the familiar STAR ➜ feature counting ➜ DESeq2 analysis stack so teams can iterate on transcriptomics projects without reinventing infrastructure.
 
 ## What this repository provides
-
+ 
 - **Turnkey Snakemake workflow** for paired-end RNA-seq, orchestrated by the `pcluster-slurm` Snakemake executor plugin to seamlessly submit jobs to AWS ParallelCluster Slurm schedulers.
 - **Reference and resource management helpers** that cache STAR indices, Singularity images, and Conda environments on shared FSx/NFS mounts for rapid re-use across projects.
 - **Quality control dashboards** generated with FastQC, MultiQC, and RSeQC, with example outputs captured under [`docs/results_tree.log`](docs/results_tree.log) for quick browsing of the report structure.
