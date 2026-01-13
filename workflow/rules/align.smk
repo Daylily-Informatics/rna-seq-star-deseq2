@@ -1,11 +1,12 @@
 rule align:
     input:
-        unpack(get_fq),
+        fq1=lambda wildcards: get_fq(wildcards)["fq1"],
+        fq2=lambda wildcards: get_fq(wildcards).get("fq2", []),
         index="resources/star_genome",
         gtf="resources/genome.gtf",
     output:
-        aln="results/star/{sample}_{unit}/Aligned.sortedByCoord.out.bam",
-        reads_per_gene="results/star/{sample}_{unit}/ReadsPerGene.out.tab",
+        aln=star_bam_path("{sample}", "{unit}"),
+        reads_per_gene=star_counts_path("{sample}", "{unit}"),
     log:
         "logs/star/{sample}_{unit}.log",
     benchmark:

@@ -77,17 +77,17 @@ def _nz(val):
 
 rule count_matrix:
     input:
-        reads = expand(
-            "results/star/{unit.sample_name}_{unit.unit_name}/ReadsPerGene.out.tab",
-            unit=units.itertuples(),
-        ),
+        reads=lambda wc: [
+            star_counts_path(unit.sample_name, unit.unit_name)
+            for unit in units.itertuples()
+        ],
         # OPTIONAL: provide per-sample infer_experiment outputs when available
-        infer = expand(
-            "results/qc/rseqc/{unit.sample_name}_{unit.unit_name}.infer_experiment.txt",
-            unit=units.itertuples(),
-        )
+        infer=lambda wc: [
+            rseqc_output_path(unit.sample_name, unit.unit_name, "infer_experiment.txt")
+            for unit in units.itertuples()
+        ],
     output:
-        "results/counts/all.tsv"
+        cohort_path("counts", "rnaseq.counts.tsv"),
     log:
         "logs/count-matrix.log",
     benchmark:
@@ -143,10 +143,10 @@ rule gene_2_symbol:
 
 rule deseq2_init:
     input:
-        counts="results/counts/all.tsv",
+        counts=cohort_path("counts", "rnaseq.counts.tsv"),
     output:
-        "results/deseq2/all.rds",
-        "results/deseq2/normcounts.tsv",
+        cohort_path("deseq2", "all.rds"),
+        cohort_path("deseq2", "normcounts.tsv"),
     conda:
         "../envs/deseq2.yaml"
     log:
@@ -165,9 +165,9 @@ rule deseq2_init:
 localrules: pca, deseq2
 rule pca:
     input:
-        "results/deseq2/all.rds",
+        cohort_path("deseq2", "all.rds"),
     output:
-        report("results/pca.{variable}.svg", "../report/pca.rst"),
+        report(cohort_path("deseq2", "pca", "{variable}.pca.svg"), "../report/pca.rst"),
     conda:
         "../envs/deseq2.yaml"
     log:
@@ -180,10 +180,16 @@ rule pca:
 
 rule deseq2:
     input:
-        "results/deseq2/all.rds",
+        cohort_path("deseq2", "all.rds"),
     output:
-        table=report("results/diffexp/{contrast}.diffexp.tsv", "../report/diffexp.rst"),
-        ma_plot=report("results/diffexp/{contrast}.ma-plot.svg", "../report/ma.rst"),
+        table=report(
+            cohort_path("deseq2", "diffexp", "{contrast}.diffexp.tsv"),
+            "../report/diffexp.rst",
+        ),
+        ma_plot=report(
+            cohort_path("deseq2", "diffexp", "{contrast}.ma-plot.svg"),
+            "../report/ma.rst",
+        ),
     params:
         contrast=get_contrast,
     conda:
